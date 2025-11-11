@@ -517,11 +517,11 @@ func (t *BingxTrader) getSymbolInfo(symbol string) (bingxSymbolInfo, error) {
 	}
 
 	var contracts []struct {
-		Symbol            string `json:"symbol"`
-		QuantityPrecision int    `json:"quantityPrecision"`
-		PricePrecision    int    `json:"pricePrecision"`
-		TradeMinQuantity  string `json:"tradeMinQuantity"`
-		TradeMinUSDT      string `json:"tradeMinUSDT"`
+		Symbol            string       `json:"symbol"`
+		QuantityPrecision int          `json:"quantityPrecision"`
+		PricePrecision    int          `json:"pricePrecision"`
+		TradeMinQuantity  stringNumber `json:"tradeMinQuantity"`
+		TradeMinUSDT      stringNumber `json:"tradeMinUSDT"`
 	}
 	if err := json.Unmarshal(data, &contracts); err != nil {
 		return bingxSymbolInfo{}, fmt.Errorf("解析交易规则失败: %w", err)
@@ -530,8 +530,8 @@ func (t *BingxTrader) getSymbolInfo(symbol string) (bingxSymbolInfo, error) {
 	cache := make(map[string]bingxSymbolInfo)
 	for _, c := range contracts {
 		internalSymbol := normalizeInternalSymbol(c.Symbol)
-		minQty := parseStringToFloat(c.TradeMinQuantity)
-		minUSDT := parseStringToFloat(c.TradeMinUSDT)
+		minQty := c.TradeMinQuantity.Float64()
+		minUSDT := c.TradeMinUSDT.Float64()
 		cache[internalSymbol] = bingxSymbolInfo{
 			Symbol:            c.Symbol,
 			QuantityPrecision: c.QuantityPrecision,
