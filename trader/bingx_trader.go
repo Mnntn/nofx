@@ -48,6 +48,7 @@ type bingxSymbolInfo struct {
 	PricePrecision    int
 	TradeMinQuantity  float64
 	TradeMinUSDT      float64
+	QuantityStep      float64
 }
 
 type stringNumber string
@@ -350,14 +351,27 @@ func (t *BingxTrader) FormatQuantity(symbol string, quantity float64) (string, e
 		return "", err
 	}
 
+	qty := quantity
+	if info.QuantityStep > 0 {
+		qty = roundToTickSize(quantity, info.QuantityStep)
+	}
+
 	precision := info.QuantityPrecision
-	formatted := formatToPrecision(quantity, precision)
+	if precision == 0 && info.QuantityStep > 0 && info.QuantityStep < 1 {
+		precision = decimalsFromStep(info.QuantityStep)
+	}
+
+	formatted := formatToPrecision(qty, precision)
 	if formatted <= 0 {
 		return "", fmt.Errorf("数量过小，格式化后为0 (precision=%d)", precision)
 	}
 
-	if info.TradeMinQuantity > 0 && formatted < info.TradeMinQuantity {
-		return "", fmt.Errorf("数量 %.8f 小于最小下单数量 %.8f", formatted, info.TradeMinQuantity)
+	minQty := info.TradeMinQuantity
+	if minQty == 0 && info.QuantityStep > 0 {
+		minQty = info.QuantityStep
+	}
+	if minQty > 0 && formatted < minQty {
+		return "", fmt.Errorf("数量 %.8f 小于最小下单数量 %.8f", formatted, minQty)
 	}
 
 	return trimFloatString(formatted, precision), nil
@@ -503,11 +517,11 @@ func (t *BingxTrader) getSymbolInfo(symbol string) (bingxSymbolInfo, error) {
 	}
 
 	var contracts []struct {
-		Symbol            string  `json:"symbol"`
-		QuantityPrecision int     `json:"quantityPrecision"`
-		PricePrecision    int     `json:"pricePrecision"`
-		TradeMinQuantity  float64 `json:"tradeMinQuantity"`
-		TradeMinUSDT      float64 `json:"tradeMinUSDT"`
+		Symbol            string `json:"symbol"`
+		QuantityPrecision int    `json:"quantityPrecision"`
+		PricePrecision    int    `json:"pricePrecision"`
+		TradeMinQuantity  string `json:"tradeMinQuantity"`
+		TradeMinUSDT      string `json:"tradeMinUSDT"`
 	}
 	if err := json.Unmarshal(data, &contracts); err != nil {
 		return bingxSymbolInfo{}, fmt.Errorf("解析交易规则失败: %w", err)
@@ -516,12 +530,15 @@ func (t *BingxTrader) getSymbolInfo(symbol string) (bingxSymbolInfo, error) {
 	cache := make(map[string]bingxSymbolInfo)
 	for _, c := range contracts {
 		internalSymbol := normalizeInternalSymbol(c.Symbol)
+		minQty := parseStringToFloat(c.TradeMinQuantity)
+		minUSDT := parseStringToFloat(c.TradeMinUSDT)
 		cache[internalSymbol] = bingxSymbolInfo{
 			Symbol:            c.Symbol,
 			QuantityPrecision: c.QuantityPrecision,
 			PricePrecision:    c.PricePrecision,
-			TradeMinQuantity:  c.TradeMinQuantity,
-			TradeMinUSDT:      c.TradeMinUSDT,
+			TradeMinQuantity:  minQty,
+			TradeMinUSDT:      minUSDT,
+			QuantityStep:      minQty,
 		}
 	}
 
@@ -700,6 +717,17 @@ func trimFloatString(value float64, precision int) string {
 		return "0"
 	}
 	return str
+}
+
+func decimalsFromStep(step float64) int {
+	if step <= 0 {
+		return 0
+	}
+	s := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.12f", step), "0"), ".")
+	if idx := strings.IndexByte(s, '.'); idx >= 0 {
+		return len(s) - idx - 1
+	}
+	return 0
 }
 
 func parseStringToFloat(s string) float64 {

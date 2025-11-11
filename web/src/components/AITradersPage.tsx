@@ -1864,7 +1864,9 @@ function ExchangeConfigModal({
     } catch (err) {
       console.error('复制失败:', err)
       // 显示错误提示
-        toast.error(t('copyIPFailed', language) || `复制失败: ${ip}\n请手动复制此IP地址`)
+      toast.error(
+        t('copyIPFailed', language) || `复制失败: ${ip}\n请手动复制此IP地址`
+      )
     }
   }
 
@@ -2418,285 +2420,299 @@ function ExchangeConfigModal({
                   </>
                 )}
 
-              {/* Hyperliquid 交易所的字段 */}
-              {selectedExchange.id === 'hyperliquid' && (
-                <>
-                  {/* 安全提示 banner */}
-                  <div
-                    className="p-3 rounded mb-4"
-                    style={{
-                      background: 'rgba(240, 185, 11, 0.1)',
-                      border: '1px solid rgba(240, 185, 11, 0.3)',
-                    }}
-                  >
-                    <div className="flex items-start gap-2">
-                      <span style={{ color: '#F0B90B', fontSize: '16px' }}>
-                        🔐
-                      </span>
-                      <div className="flex-1">
-                        <div
-                          className="text-sm font-semibold mb-1"
-                          style={{ color: '#F0B90B' }}
-                        >
-                          {t('hyperliquidAgentWalletTitle', language)}
-                        </div>
-                        <div
-                          className="text-xs"
-                          style={{ color: '#848E9C', lineHeight: '1.5' }}
-                        >
-                          {t('hyperliquidAgentWalletDesc', language)}
+                {/* Hyperliquid 交易所的字段 */}
+                {selectedExchange.id === 'hyperliquid' && (
+                  <>
+                    {/* 安全提示 banner */}
+                    <div
+                      className="p-3 rounded mb-4"
+                      style={{
+                        background: 'rgba(240, 185, 11, 0.1)',
+                        border: '1px solid rgba(240, 185, 11, 0.3)',
+                      }}
+                    >
+                      <div className="flex items-start gap-2">
+                        <span style={{ color: '#F0B90B', fontSize: '16px' }}>
+                          🔐
+                        </span>
+                        <div className="flex-1">
+                          <div
+                            className="text-sm font-semibold mb-1"
+                            style={{ color: '#F0B90B' }}
+                          >
+                            {t('hyperliquidAgentWalletTitle', language)}
+                          </div>
+                          <div
+                            className="text-xs"
+                            style={{ color: '#848E9C', lineHeight: '1.5' }}
+                          >
+                            {t('hyperliquidAgentWalletDesc', language)}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Agent Private Key 字段 */}
-                  <div>
-                    <label
-                      className="block text-sm font-semibold mb-2"
-                      style={{ color: '#EAECEF' }}
-                    >
-                      {t('hyperliquidAgentPrivateKey', language)}
-                    </label>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={maskSecret(apiKey)}
-                          readOnly
-                          placeholder={t(
-                            'enterHyperliquidAgentPrivateKey',
-                            language
+                    {/* Agent Private Key 字段 */}
+                    <div>
+                      <label
+                        className="block text-sm font-semibold mb-2"
+                        style={{ color: '#EAECEF' }}
+                      >
+                        {t('hyperliquidAgentPrivateKey', language)}
+                      </label>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={maskSecret(apiKey)}
+                            readOnly
+                            placeholder={t(
+                              'enterHyperliquidAgentPrivateKey',
+                              language
+                            )}
+                            className="w-full px-3 py-2 rounded"
+                            style={{
+                              background: '#0B0E11',
+                              border: '1px solid #2B3139',
+                              color: '#EAECEF',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setSecureInputTarget('hyperliquid')}
+                            className="px-3 py-2 rounded text-xs font-semibold transition-all hover:scale-105"
+                            style={{
+                              background: '#F0B90B',
+                              color: '#000',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {apiKey
+                              ? t('secureInputReenter', language)
+                              : t('secureInputButton', language)}
+                          </button>
+                          {apiKey && (
+                            <button
+                              type="button"
+                              onClick={() => setApiKey('')}
+                              className="px-3 py-2 rounded text-xs font-semibold transition-all hover:scale-105"
+                              style={{
+                                background: '#1B1F2B',
+                                color: '#848E9C',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {t('secureInputClear', language)}
+                            </button>
                           )}
-                          className="w-full px-3 py-2 rounded"
-                          style={{
-                            background: '#0B0E11',
-                            border: '1px solid #2B3139',
-                            color: '#EAECEF',
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setSecureInputTarget('hyperliquid')}
-                          className="px-3 py-2 rounded text-xs font-semibold transition-all hover:scale-105"
-                          style={{
-                            background: '#F0B90B',
-                            color: '#000',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {apiKey
-                            ? t('secureInputReenter', language)
-                            : t('secureInputButton', language)}
-                        </button>
+                        </div>
                         {apiKey && (
+                          <div className="text-xs" style={{ color: '#848E9C' }}>
+                            {t('secureInputHint', language)}
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className="text-xs mt-1"
+                        style={{ color: '#848E9C' }}
+                      >
+                        {t('hyperliquidAgentPrivateKeyDesc', language)}
+                      </div>
+                    </div>
+
+                    {/* Main Wallet Address 字段 */}
+                    <div>
+                      <label
+                        className="block text-sm font-semibold mb-2"
+                        style={{ color: '#EAECEF' }}
+                      >
+                        {t('hyperliquidMainWalletAddress', language)}
+                      </label>
+                      <input
+                        type="text"
+                        value={hyperliquidWalletAddr}
+                        onChange={(e) =>
+                          setHyperliquidWalletAddr(e.target.value)
+                        }
+                        placeholder={t(
+                          'enterHyperliquidMainWalletAddress',
+                          language
+                        )}
+                        className="w-full px-3 py-2 rounded"
+                        style={{
+                          background: '#0B0E11',
+                          border: '1px solid #2B3139',
+                          color: '#EAECEF',
+                        }}
+                        required
+                      />
+                      <div
+                        className="text-xs mt-1"
+                        style={{ color: '#848E9C' }}
+                      >
+                        {t('hyperliquidMainWalletAddressDesc', language)}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Aster 交易所的字段 */}
+                {selectedExchange.id === 'aster' && (
+                  <>
+                    <div>
+                      <label
+                        className="block text-sm font-semibold mb-2 flex items-center gap-2"
+                        style={{ color: '#EAECEF' }}
+                      >
+                        {t('user', language)}
+                        <Tooltip content={t('asterUserDesc', language)}>
+                          <HelpCircle
+                            className="w-4 h-4 cursor-help"
+                            style={{ color: '#F0B90B' }}
+                          />
+                        </Tooltip>
+                      </label>
+                      <input
+                        type="text"
+                        value={asterUser}
+                        onChange={(e) => setAsterUser(e.target.value)}
+                        placeholder={t('enterUser', language)}
+                        className="w-full px-3 py-2 rounded"
+                        style={{
+                          background: '#0B0E11',
+                          border: '1px solid #2B3139',
+                          color: '#EAECEF',
+                        }}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        className="block text-sm font-semibold mb-2 flex items-center gap-2"
+                        style={{ color: '#EAECEF' }}
+                      >
+                        {t('signer', language)}
+                        <Tooltip content={t('asterSignerDesc', language)}>
+                          <HelpCircle
+                            className="w-4 h-4 cursor-help"
+                            style={{ color: '#F0B90B' }}
+                          />
+                        </Tooltip>
+                      </label>
+                      <input
+                        type="text"
+                        value={asterSigner}
+                        onChange={(e) => setAsterSigner(e.target.value)}
+                        placeholder={t('enterSigner', language)}
+                        className="w-full px-3 py-2 rounded"
+                        style={{
+                          background: '#0B0E11',
+                          border: '1px solid #2B3139',
+                          color: '#EAECEF',
+                        }}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        className="block text-sm font-semibold mb-2 flex items-center gap-2"
+                        style={{ color: '#EAECEF' }}
+                      >
+                        {t('privateKey', language)}
+                        <Tooltip content={t('asterPrivateKeyDesc', language)}>
+                          <HelpCircle
+                            className="w-4 h-4 cursor-help"
+                            style={{ color: '#F0B90B' }}
+                          />
+                        </Tooltip>
+                      </label>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={maskSecret(asterPrivateKey)}
+                            readOnly
+                            placeholder={t('enterPrivateKey', language)}
+                            className="w-full px-3 py-2 rounded"
+                            style={{
+                              background: '#0B0E11',
+                              border: '1px solid #2B3139',
+                              color: '#EAECEF',
+                            }}
+                          />
                           <button
                             type="button"
-                            onClick={() => setApiKey('')}
+                            onClick={() => setSecureInputTarget('aster')}
                             className="px-3 py-2 rounded text-xs font-semibold transition-all hover:scale-105"
                             style={{
-                              background: '#1B1F2B',
-                              color: '#848E9C',
+                              background: '#F0B90B',
+                              color: '#000',
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {t('secureInputClear', language)}
+                            {asterPrivateKey
+                              ? t('secureInputReenter', language)
+                              : t('secureInputButton', language)}
                           </button>
-                        )}
-                      </div>
-                      {apiKey && (
-                        <div className="text-xs" style={{ color: '#848E9C' }}>
-                          {t('secureInputHint', language)}
+                          {asterPrivateKey && (
+                            <button
+                              type="button"
+                              onClick={() => setAsterPrivateKey('')}
+                              className="px-3 py-2 rounded text-xs font-semibold transition-all hover:scale-105"
+                              style={{
+                                background: '#1B1F2B',
+                                color: '#848E9C',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {t('secureInputClear', language)}
+                            </button>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <div className="text-xs mt-1" style={{ color: '#848E9C' }}>
-                      {t('hyperliquidAgentPrivateKeyDesc', language)}
-                    </div>
-                  </div>
-
-                  {/* Main Wallet Address 字段 */}
-                  <div>
-                    <label
-                      className="block text-sm font-semibold mb-2"
-                      style={{ color: '#EAECEF' }}
-                    >
-                      {t('hyperliquidMainWalletAddress', language)}
-                    </label>
-                    <input
-                      type="text"
-                      value={hyperliquidWalletAddr}
-                      onChange={(e) => setHyperliquidWalletAddr(e.target.value)}
-                      placeholder={t(
-                        'enterHyperliquidMainWalletAddress',
-                        language
-                      )}
-                      className="w-full px-3 py-2 rounded"
-                      style={{
-                        background: '#0B0E11',
-                        border: '1px solid #2B3139',
-                        color: '#EAECEF',
-                      }}
-                      required
-                    />
-                    <div className="text-xs mt-1" style={{ color: '#848E9C' }}>
-                      {t('hyperliquidMainWalletAddressDesc', language)}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Aster 交易所的字段 */}
-              {selectedExchange.id === 'aster' && (
-                <>
-                  <div>
-                    <label
-                      className="block text-sm font-semibold mb-2 flex items-center gap-2"
-                      style={{ color: '#EAECEF' }}
-                    >
-                      {t('user', language)}
-                      <Tooltip content={t('asterUserDesc', language)}>
-                        <HelpCircle
-                          className="w-4 h-4 cursor-help"
-                          style={{ color: '#F0B90B' }}
-                        />
-                      </Tooltip>
-                    </label>
-                    <input
-                      type="text"
-                      value={asterUser}
-                      onChange={(e) => setAsterUser(e.target.value)}
-                      placeholder={t('enterUser', language)}
-                      className="w-full px-3 py-2 rounded"
-                      style={{
-                        background: '#0B0E11',
-                        border: '1px solid #2B3139',
-                        color: '#EAECEF',
-                      }}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      className="block text-sm font-semibold mb-2 flex items-center gap-2"
-                      style={{ color: '#EAECEF' }}
-                    >
-                      {t('signer', language)}
-                      <Tooltip content={t('asterSignerDesc', language)}>
-                        <HelpCircle
-                          className="w-4 h-4 cursor-help"
-                          style={{ color: '#F0B90B' }}
-                        />
-                      </Tooltip>
-                    </label>
-                    <input
-                      type="text"
-                      value={asterSigner}
-                      onChange={(e) => setAsterSigner(e.target.value)}
-                      placeholder={t('enterSigner', language)}
-                      className="w-full px-3 py-2 rounded"
-                      style={{
-                        background: '#0B0E11',
-                        border: '1px solid #2B3139',
-                        color: '#EAECEF',
-                      }}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      className="block text-sm font-semibold mb-2 flex items-center gap-2"
-                      style={{ color: '#EAECEF' }}
-                    >
-                      {t('privateKey', language)}
-                      <Tooltip content={t('asterPrivateKeyDesc', language)}>
-                        <HelpCircle
-                          className="w-4 h-4 cursor-help"
-                          style={{ color: '#F0B90B' }}
-                        />
-                      </Tooltip>
-                    </label>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={maskSecret(asterPrivateKey)}
-                          readOnly
-                          placeholder={t('enterPrivateKey', language)}
-                          className="w-full px-3 py-2 rounded"
-                          style={{
-                            background: '#0B0E11',
-                            border: '1px solid #2B3139',
-                            color: '#EAECEF',
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setSecureInputTarget('aster')}
-                          className="px-3 py-2 rounded text-xs font-semibold transition-all hover:scale-105"
-                          style={{
-                            background: '#F0B90B',
-                            color: '#000',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {asterPrivateKey
-                            ? t('secureInputReenter', language)
-                            : t('secureInputButton', language)}
-                        </button>
                         {asterPrivateKey && (
-                          <button
-                            type="button"
-                            onClick={() => setAsterPrivateKey('')}
-                            className="px-3 py-2 rounded text-xs font-semibold transition-all hover:scale-105"
-                            style={{
-                              background: '#1B1F2B',
-                              color: '#848E9C',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {t('secureInputClear', language)}
-                          </button>
+                          <div className="text-xs" style={{ color: '#848E9C' }}>
+                            {t('secureInputHint', language)}
+                          </div>
                         )}
                       </div>
-                      {asterPrivateKey && (
-                        <div className="text-xs" style={{ color: '#848E9C' }}>
-                          {t('secureInputHint', language)}
-                        </div>
-                      )}
                     </div>
+<<<<<<< HEAD
                   </div>
+=======
+>>>>>>> nofx/dev
 
-                <div
-                  className="p-4 rounded"
-                  style={{
-                    background: 'rgba(240, 185, 11, 0.1)',
-                    border: '1px solid rgba(240, 185, 11, 0.2)',
-                  }}
-                >
-                  <div
-                    className="text-sm font-semibold mb-2"
-                    style={{ color: '#F0B90B' }}
-                  >
-                    <span className="inline-flex items-center gap-1">
-                      <AlertTriangle className="w-4 h-4" />{' '}
-                      {t('securityWarning', language)}
-                    </span>
-                  </div>
-                  <div
-                    className="text-xs space-y-1"
-                    style={{ color: '#848E9C' }}
-                  >
-                    {selectedExchange.id === 'aster' && (
-                      <div>{t('asterUsdtWarning', language)}</div>
-                    )}
-                    <div>{t('exchangeConfigWarning1', language)}</div>
-                    <div>{t('exchangeConfigWarning2', language)}</div>
-                    <div>{t('exchangeConfigWarning3', language)}</div>
-                  </div>
-                </div>
+                    <div
+                      className="p-4 rounded"
+                      style={{
+                        background: 'rgba(240, 185, 11, 0.1)',
+                        border: '1px solid rgba(240, 185, 11, 0.2)',
+                      }}
+                    >
+                      <div
+                        className="text-sm font-semibold mb-2"
+                        style={{ color: '#F0B90B' }}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          <AlertTriangle className="w-4 h-4" />{' '}
+                          {t('securityWarning', language)}
+                        </span>
+                      </div>
+                      <div
+                        className="text-xs space-y-1"
+                        style={{ color: '#848E9C' }}
+                      >
+                        {selectedExchange.id === 'aster' && (
+                          <div>{t('asterUsdtWarning', language)}</div>
+                        )}
+                        <div>{t('exchangeConfigWarning1', language)}</div>
+                        <div>{t('exchangeConfigWarning2', language)}</div>
+                        <div>{t('exchangeConfigWarning3', language)}</div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
               )}
             </>
