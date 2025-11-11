@@ -34,6 +34,9 @@ type AutoTraderConfig struct {
 	HyperliquidWalletAddr string
 	HyperliquidTestnet    bool
 
+	// BingX 配置
+	BingxTestnet bool
+
 	// Aster配置
 	AsterUser       string // Aster主钱包地址
 	AsterSigner     string // Aster API钱包地址
@@ -187,6 +190,12 @@ func NewAutoTrader(config AutoTraderConfig, database interface{}, userID string)
 		trader, err = NewAsterTrader(config.AsterUser, config.AsterSigner, config.AsterPrivateKey)
 		if err != nil {
 			return nil, fmt.Errorf("初始化Aster交易器失败: %w", err)
+		}
+	case "bingx":
+		log.Printf("🏦 [%s] 使用BingX 合约交易", config.Name)
+		trader, err = NewBingxTrader(config.BinanceAPIKey, config.BinanceSecretKey, config.BingxTestnet)
+		if err != nil {
+			return nil, fmt.Errorf("初始化BingX交易器失败: %w", err)
 		}
 	default:
 		return nil, fmt.Errorf("不支持的交易平台: %s", config.Exchange)

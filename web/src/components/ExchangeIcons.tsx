@@ -125,19 +125,59 @@ const AsterIcon: React.FC<IconProps> = ({
   </svg>
 )
 
+// BingX SVG 图标组件
+const BingxIcon: React.FC<IconProps> = ({
+  width = 24,
+  height = 24,
+  className,
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 64 64"
+    width={width}
+    height={height}
+    className={className}
+  >
+    <defs>
+      <linearGradient id="bingx" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#0f6efe" />
+        <stop offset="100%" stopColor="#6cc4ff" />
+      </linearGradient>
+    </defs>
+    <circle cx="32" cy="32" r="30" fill="#051937" />
+    <path
+      d="M18 16L32 30 46 16"
+      stroke="url(#bingx)"
+      strokeWidth="6"
+      strokeLinecap="round"
+      fill="none"
+    />
+    <path
+      d="M18 48L32 34 46 48"
+      stroke="url(#bingx)"
+      strokeWidth="6"
+      strokeLinecap="round"
+      fill="none"
+    />
+  </svg>
+)
+
 // 获取交易所图标的函数
 export const getExchangeIcon = (
   exchangeType: string,
   props: IconProps = {}
 ) => {
   // 支持完整ID或类型名
-  const type = exchangeType.toLowerCase().includes('binance')
+  const lower = exchangeType.toLowerCase()
+  const type = lower.includes('binance')
     ? 'binance'
-    : exchangeType.toLowerCase().includes('hyperliquid')
+    : lower.includes('hyperliquid')
       ? 'hyperliquid'
-      : exchangeType.toLowerCase().includes('aster')
+      : lower.includes('aster')
         ? 'aster'
-        : exchangeType.toLowerCase()
+        : lower.includes('bingx')
+          ? 'bingx'
+          : lower
 
   const iconProps = {
     width: props.width || 24,
@@ -154,6 +194,8 @@ export const getExchangeIcon = (
       return <HyperliquidIcon {...iconProps} />
     case 'aster':
       return <AsterIcon {...iconProps} />
+    case 'bingx':
+      return <BingxIcon {...iconProps} />
     default:
       return (
         <div

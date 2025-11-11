@@ -2668,7 +2668,6 @@ function ExchangeConfigModal({
                       )}
                     </div>
                   </div>
-                </div>
 
                 <div
                   className="p-4 rounded"
@@ -2699,6 +2698,8 @@ function ExchangeConfigModal({
                   </div>
                 </div>
               </>
+              )}
+            </>
             )}
           </div>
 

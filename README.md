@@ -80,7 +80,7 @@ Join our Telegram developer community to discuss, share ideas, and get support:
 
 ### 🚀 Multi-Exchange Support!
 
-NOFX now supports **three major exchanges**: Binance, Hyperliquid, and Aster DEX!
+NOFX now supports **four major exchanges**: Binance, BingX, Hyperliquid, and Aster DEX!
 
 #### **Hyperliquid Exchange**
 
@@ -95,7 +95,7 @@ A high-performance decentralized perpetual futures exchange!
 
 **New Workflow:**
 1. **Configure AI Models**: Add your DeepSeek/Qwen API keys through the web interface
-2. **Configure Exchanges**: Set up Binance/Hyperliquid API credentials
+2. **Configure Exchanges**: Set up Binance/BingX/Hyperliquid API credentials  
 3. **Create Traders**: Combine any AI model with any exchange to create custom traders
 4. **Monitor & Control**: Start/stop traders and monitor performance in real-time
 
@@ -170,7 +170,7 @@ NOFX is currently **fully operational in cryptocurrency markets** with the follo
 - **Technical Indicators**: EMA20/50, MACD, RSI(7/14), ATR
 - **Open Interest Tracking**: Market sentiment, capital flow analysis
 - **Liquidity Filtering**: Auto-filters low liquidity assets (<15M USD)
-- **Cross-Exchange Support**: Binance, Hyperliquid, Aster DEX with unified data interface
+- **Cross-Exchange Support**: Binance, BingX, Hyperliquid, Aster DEX with unified data interface
 
 ### 🎯 Unified Risk Control System
 - **Position Limits**: Per-asset limits (Altcoins ≤1.5x equity, BTC/ETH ≤10x equity)
@@ -180,7 +180,7 @@ NOFX is currently **fully operational in cryptocurrency markets** with the follo
 - **Anti-Stacking Protection**: Prevents duplicate positions in same asset/direction
 
 ### ⚡ Low-Latency Execution Engine
-- **Multi-Exchange API Integration**: Binance Futures, Hyperliquid DEX, Aster DEX
+- **Multi-Exchange API Integration**: Binance Futures, BingX Perpetuals, Hyperliquid DEX, Aster DEX
 - **Automatic Precision Handling**: Smart order size & price formatting per exchange
 - **Priority Execution**: Close existing positions first, then open new ones
 - **Slippage Control**: Pre-execution validation, real-time precision checks
@@ -225,7 +225,7 @@ NOFX is built with a modern, modular architecture:
 
 - **Backend:** Go with Gin framework, SQLite database
 - **Frontend:** React 18 + TypeScript + Vite + TailwindCSS
-- **Multi-Exchange Support:** Binance, Hyperliquid, Aster DEX
+- **Multi-Exchange Support:** Binance, BingX, Hyperliquid, Aster DEX
 - **AI Integration:** DeepSeek, Qwen, and custom OpenAI-compatible APIs
 - **State Management:** Zustand for frontend, database-driven for backend
 - **Real-time Updates:** SWR with 5-10s polling intervals
@@ -355,7 +355,7 @@ Open your browser and visit: **http://localhost:3000**
 
 #### Initial Setup (Through Web Interface)
 1. **Configure AI Models**: Add your DeepSeek/Qwen API keys
-2. **Configure Exchanges**: Set up Binance/Hyperliquid credentials  
+2. **Configure Exchanges**: Set up Binance/BingX/Hyperliquid credentials  
 3. **Create Traders**: Combine AI models with exchanges
 4. **Start Trading**: Launch your configured traders
 
@@ -512,7 +512,7 @@ Open your browser and visit: **🌐 http://localhost:3000**
 
 #### **Step 2: Configure Exchanges**  
 1. Click "交易所配置" button
-2. Enable Binance or Hyperliquid (or both)
+2. Enable Binance, BingX or Hyperliquid (or any combination)
 3. Enter your API credentials
 4. Save configuration
 
@@ -573,6 +573,19 @@ Open your browser and visit: **🌐 http://localhost:3000**
 - Set `hyperliquid_testnet: false` for mainnet (or `true` for testnet)
 
 **⚠️ Security Warning**: Never share your private key! Use a dedicated wallet for trading, not your main wallet.
+
+---
+
+#### 🔵 Alternative: Using BingX Exchange
+
+**BingX perpetual contracts are now fully supported** with the same AI strategy engine. To trade on BingX:
+
+1. Create an API key on [BingX API Management](https://bingx.com/) and enable the *Perpetual* permission.
+2. (Optional) If you test on the BingX VST environment, toggle **Testnet** when saving the exchange inside NOFX.
+3. Whitelist your NOFX server IP in BingX (the exchange setup dialog shows the current IP just like the Binance workflow).
+4. Head to **Settings → Exchanges**, pick **BingX**, and paste your API Key + Secret. You're ready to go.
+
+📘 Official docs: [https://bingx-api.github.io/docs/#/en-us/](https://bingx-api.github.io/docs/#/en-us/)
 
 ---
 
