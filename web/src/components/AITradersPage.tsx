@@ -2678,10 +2678,6 @@ function ExchangeConfigModal({
                         )}
                       </div>
                     </div>
-<<<<<<< HEAD
-                  </div>
-=======
->>>>>>> nofx/dev
 
                     <div
                       className="p-4 rounded"
@@ -2715,8 +2711,6 @@ function ExchangeConfigModal({
                 )}
               </>
               )}
-            </>
-            )}
           </div>
 
           <div
