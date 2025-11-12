@@ -240,11 +240,25 @@ func (t *BingxTrader) OpenShort(symbol string, quantity float64, leverage int) (
 
 // CloseLong 平多仓
 func (t *BingxTrader) CloseLong(symbol string, quantity float64) (map[string]interface{}, error) {
+	if quantity == 0 {
+		qty, err := t.getPositionQuantity(symbol, "LONG")
+		if err != nil {
+			return nil, err
+		}
+		quantity = qty
+	}
 	return t.createMarketOrder(symbol, quantity, "SELL", "LONG", true)
 }
 
 // CloseShort 平空仓
 func (t *BingxTrader) CloseShort(symbol string, quantity float64) (map[string]interface{}, error) {
+	if quantity == 0 {
+		qty, err := t.getPositionQuantity(symbol, "SHORT")
+		if err != nil {
+			return nil, err
+		}
+		quantity = qty
+	}
 	return t.createMarketOrder(symbol, quantity, "BUY", "SHORT", true)
 }
 
@@ -557,6 +571,26 @@ func (t *BingxTrader) getSymbolInfo(symbol string) (bingxSymbolInfo, error) {
 		return bingxSymbolInfo{}, fmt.Errorf("未找到交易对 %s 的规则信息", symbol)
 	}
 	return info, nil
+}
+
+func (t *BingxTrader) getPositionQuantity(symbol string, side string) (float64, error) {
+	positions, err := t.GetPositions()
+	if err != nil {
+		return 0, err
+	}
+
+	targetSymbol := normalizeInternalSymbol(symbol)
+	for _, pos := range positions {
+		posSymbol, _ := pos["symbol"].(string)
+		posSide, _ := pos["side"].(string)
+		if strings.EqualFold(posSymbol, targetSymbol) && strings.EqualFold(posSide, side) {
+			if qty, ok := pos["positionAmt"].(float64); ok && qty > 0 {
+				return qty, nil
+			}
+		}
+	}
+
+	return 0, fmt.Errorf("没有找到 %s 的%s仓位", symbol, side)
 }
 
 func (t *BingxTrader) signedRequest(ctx context.Context, method, path string, params map[string]string) (json.RawMessage, error) {
