@@ -356,25 +356,31 @@ func (t *BingxTrader) FormatQuantity(symbol string, quantity float64) (string, e
 		qty = roundToTickSize(quantity, info.QuantityStep)
 	}
 
-	precision := info.QuantityPrecision
-	if precision == 0 && info.QuantityStep > 0 && info.QuantityStep < 1 {
-		precision = decimalsFromStep(info.QuantityStep)
+	if qty <= 0 {
+		return "", fmt.Errorf("数量 %.8f 无效，无法下单", quantity)
 	}
 
-	formatted := formatToPrecision(qty, precision)
-	if formatted <= 0 {
-		return "", fmt.Errorf("数量过小，格式化后为0 (precision=%d)", precision)
+	precision := info.QuantityPrecision
+	if precision == 0 {
+		if info.QuantityStep > 0 && info.QuantityStep < 1 {
+			precision = decimalsFromStep(info.QuantityStep)
+		} else if qty < 1 {
+			precision = decimalsFromValue(qty)
+		}
+		if precision == 0 {
+			precision = 6
+		}
 	}
 
 	minQty := info.TradeMinQuantity
 	if minQty == 0 && info.QuantityStep > 0 {
 		minQty = info.QuantityStep
 	}
-	if minQty > 0 && formatted < minQty {
-		return "", fmt.Errorf("数量 %.8f 小于最小下单数量 %.8f", formatted, minQty)
+	if minQty > 0 && qty < minQty {
+		return "", fmt.Errorf("数量 %.8f 小于最小下单数量 %.8f", qty, minQty)
 	}
 
-	return trimFloatString(formatted, precision), nil
+	return trimFloatString(qty, precision), nil
 }
 
 // -------------------- 私有辅助函数 --------------------
@@ -724,6 +730,17 @@ func decimalsFromStep(step float64) int {
 		return 0
 	}
 	s := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.12f", step), "0"), ".")
+	if idx := strings.IndexByte(s, '.'); idx >= 0 {
+		return len(s) - idx - 1
+	}
+	return 0
+}
+
+func decimalsFromValue(val float64) int {
+	if val <= 0 {
+		return 0
+	}
+	s := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.12f", val), "0"), ".")
 	if idx := strings.IndexByte(s, '.'); idx >= 0 {
 		return len(s) - idx - 1
 	}
