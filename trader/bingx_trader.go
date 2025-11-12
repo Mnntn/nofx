@@ -417,9 +417,8 @@ func (t *BingxTrader) createMarketOrder(symbol string, quantity float64, side, p
 		"quantity":     qtyStr,
 	}
 
-	if reduceOnly {
-		params["reduceOnly"] = "true"
-	}
+	// reduceOnly 与 Hedge 模式冲突，BingX 会直接拒绝
+	// 通过 positionSide + 方向控制平仓，不再设置 reduceOnly
 
 	data, err := t.signedRequest(context.Background(), http.MethodPost, "/openApi/swap/v2/trade/order", params)
 	if err != nil {
