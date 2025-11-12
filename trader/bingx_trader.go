@@ -464,7 +464,6 @@ func (t *BingxTrader) placeStopOrder(symbol, positionSide string, quantity, targ
 		"quantity":     qtyStr,
 		"stopPrice":    trimFloatString(stopPrice, info.PricePrecision),
 		"workingType":  "MARK_PRICE",
-		"reduceOnly":   "true",
 	}
 
 	// 止损方向与仓位相反

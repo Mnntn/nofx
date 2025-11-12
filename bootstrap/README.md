@@ -1,25 +1,25 @@
-# Bootstrap 模块初始化框架
+# Bootstrap Module Initialization Framework
 
-## 概述
+## Overview
 
-Bootstrap 是一个模块化的初始化框架，允许各个模块通过注册钩子的方式自动完成初始化，支持优先级控制、条件初始化、错误策略等高级特性。
+Bootstrap is a modular initialization framework that lets modules register hooks to automatically finish their own setup. It supports priority control, conditional initialization, flexible error handling strategies, detailed logging, thread safety, and test-friendly cleanup.
 
-## 核心特性
+## Key Features
 
-- ✅ **优先级排序** - 保证模块按正确的顺序初始化
-- ✅ **钩子命名** - 每个钩子都有清晰的名称，便于日志追踪和错误定位
-- ✅ **上下文传递** - 模块之间可以共享数据（如数据库实例）
-- ✅ **条件初始化** - 根据配置动态决定是否初始化某个模块
-- ✅ **灵活的错误处理** - 支持快速失败、继续执行、警告三种策略
-- ✅ **详细日志** - 显示初始化进度、耗时统计
-- ✅ **线程安全** - 使用互斥锁保护全局状态
-- ✅ **测试友好** - 提供 Clear() 方法清除钩子
+- ✅ **Priority ordering** – ensures modules initialize in the correct sequence
+- ✅ **Named hooks** – clear names make logs easy to trace and debug
+- ✅ **Context sharing** – modules can exchange data such as database handles
+- ✅ **Conditional initialization** – toggle module startup based on configuration
+- ✅ **Flexible error handling** – choose fail-fast, continue, or warn behaviors
+- ✅ **Verbose logging** – shows progress and timing for each hook
+- ✅ **Thread-safe** – mutex-protected global state
+- ✅ **Test friendly** – `Clear()` removes all registered hooks
 
-## 快速开始
+## Quick Start
 
-### 1. 在模块中注册初始化钩子
+### 1. Register an initialization hook inside your module
 
-在你的模块包中创建 `init.go` 文件：
+Create an `init.go` file in your module package:
 
 ```go
 // proxy/init.go
@@ -31,27 +31,23 @@ import (
 )
 
 func init() {
-	// 注册初始化钩子
-	bootstrap.Register("Proxy模块", bootstrap.PriorityCore, initProxyModule)
+	bootstrap.Register("Proxy Module", bootstrap.PriorityCore, initProxyModule)
 }
 
 func initProxyModule(ctx *bootstrap.Context) error {
-	// 从配置中读取 proxy 配置
 	proxyConfig := ctx.Config.Proxy
 
-	// 初始化代理管理器
 	if err := InitGlobalProxyManager(proxyConfig); err != nil {
 		return err
 	}
 
-	// 将实例存储到上下文，供其他模块使用
 	ctx.Set("proxy_manager", GetGlobalProxyManager())
 
 	return nil
 }
 ```
 
-### 2. 在 main.go 中运行初始化
+### 2. Run the initialization in `main.go`
 
 ```go
 package main
@@ -61,168 +57,161 @@ import (
 	"nofx/bootstrap"
 	"nofx/config"
 
-	// 导入需要初始化的模块（触发 init() 注册）
 	_ "nofx/proxy"
 	_ "nofx/market"
 	_ "nofx/trader"
 )
 
 func main() {
-	// 加载配置
 	cfg, err := config.LoadConfig("config.json")
 	if err != nil {
-		log.Fatalf("加载配置失败: %v", err)
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// 创建初始化上下文
 	ctx := bootstrap.NewContext(cfg)
 
-	// 执行所有初始化钩子
 	if err := bootstrap.Run(ctx); err != nil {
-		log.Fatalf("初始化失败: %v", err)
+		log.Fatalf("Initialization failed: %v", err)
 	}
 
-	// 启动业务逻辑...
+	// Start your business logic...
 }
 ```
 
-### 3. 运行效果
+### 3. Expected output
 
 ```
-🔄 开始初始化 3 个模块...
-  [1/3] 初始化: Database模块 (优先级: 20)
-  ✓ 完成: Database模块 (耗时: 120ms)
-  [2/3] 初始化: Proxy模块 (优先级: 50)
-    ↳ 代理自动刷新已启动 (间隔: 30m0s)
-    ↳ 代理池状态: 总计=5, 黑名单=0, 可用=5
-  ✓ 完成: Proxy模块 (耗时: 35ms)
-  [3/3] 初始化: Market模块 (优先级: 100)
-  ✓ 完成: Market模块 (耗时: 200ms)
-✅ 所有模块初始化完成 (总耗时: 355ms)
-📊 统计: 成功=3, 跳过=0
+🔄 Starting initialization of 3 modules...
+  [1/3] Initializing: Database Module (priority: 20)
+  ✓ Done: Database Module (elapsed: 120ms)
+  [2/3] Initializing: Proxy Module (priority: 50)
+    ↳ Proxy auto-refresh started (interval: 30m0s)
+    ↳ Proxy pool status: total=5, blacklist=0, available=5
+  ✓ Done: Proxy Module (elapsed: 35ms)
+  [3/3] Initializing: Market Module (priority: 100)
+  ✓ Done: Market Module (elapsed: 200ms)
+✅ All modules initialized (total: 355ms)
+📊 Stats: success=3, skipped=0
 ```
 
-## 优先级常量
+## Priority Constants
 
-系统预定义了以下优先级常量（数值越小越先执行）：
+The system defines the following priority constants (smaller numbers execute earlier):
 
-| 常量 | 值 | 用途 | 示例 |
-|------|-----|------|------|
-| `PriorityInfrastructure` | 10 | 基础设施 | 日志系统、配置加载 |
-| `PriorityDatabase` | 20 | 数据库连接 | SQLite、Redis |
-| `PriorityCore` | 50 | 核心模块 | Proxy、Market Monitor |
-| `PriorityBusiness` | 100 | 业务模块 | Trader、API Server |
-| `PriorityBackground` | 200 | 后台任务 | 定时任务、监控 |
+| Constant | Value | Purpose | Example |
+|----------|-------|---------|---------|
+| `PriorityInfrastructure` | 10 | Infrastructure | Logging, config loading |
+| `PriorityDatabase` | 20 | Database connections | SQLite, Redis |
+| `PriorityCore` | 50 | Core modules | Proxy, Market Monitor |
+| `PriorityBusiness` | 100 | Business modules | Trader, API Server |
+| `PriorityBackground` | 200 | Background tasks | Schedulers, monitoring |
 
-### 使用示例
+### Usage example
 
 ```go
-// 数据库模块（最先初始化）
+// Database module (initializes first)
 bootstrap.Register("Database", bootstrap.PriorityDatabase, initDatabase)
 
-// 代理模块（核心模块）
+// Proxy module (core module)
 bootstrap.Register("Proxy", bootstrap.PriorityCore, initProxy)
 
-// Trader模块（依赖数据库和代理）
+// Trader module (depends on database and proxy)
 bootstrap.Register("Trader", bootstrap.PriorityBusiness, initTrader)
 ```
 
-## 高级特性
+## Advanced Features
 
-### 1. 条件初始化
+### 1. Conditional initialization
 
-某些模块只在特定条件下才需要初始化：
+Some modules only need to start when certain conditions are met:
 
 ```go
-bootstrap.Register("Proxy模块", bootstrap.PriorityCore, initProxy).
+bootstrap.Register("Proxy Module", bootstrap.PriorityCore, initProxy).
 	EnabledIf(func(ctx *bootstrap.Context) bool {
-		// 只在配置中启用 proxy 时才初始化
 		return ctx.Config.Proxy != nil && ctx.Config.Proxy.Enabled
 	})
 ```
 
-**输出**：
+**Output**:
 ```
-  [2/5] 跳过: Proxy模块 (条件未满足)
+  [2/5] Skipped: Proxy Module (condition not met)
 ```
 
-### 2. 错误处理策略
+### 2. Error handling policies
 
-支持三种错误处理策略：
+Three strategies are available:
 
-#### FailFast（默认）- 遇到错误立即停止
+#### FailFast (default) – stop immediately on error
 
 ```go
 bootstrap.Register("Database", bootstrap.PriorityDatabase, initDatabase)
-// 默认就是 FailFast，无需显式设置
+// FailFast is the default; no extra configuration needed
 ```
 
-**效果**：Database 初始化失败，整个系统停止启动
+**Effect**: if Database initialization fails, system startup stops.
 
-#### ContinueOnError - 继续执行，收集所有错误
+#### ContinueOnError – keep going, aggregate all errors
 
 ```go
 bootstrap.Register("Proxy", bootstrap.PriorityCore, initProxy).
 	OnError(bootstrap.ContinueOnError)
 ```
 
-**效果**：Proxy 失败不影响其他模块，最后汇总所有错误
+**Effect**: Proxy failure doesn’t block other modules; all errors are reported at the end.
 
-#### WarnOnError - 继续执行，只打印警告
+#### WarnOnError – continue, log a warning
 
 ```go
 bootstrap.Register("Proxy", bootstrap.PriorityCore, initProxy).
 	OnError(bootstrap.WarnOnError)
 ```
 
-**效果**：Proxy 失败只打印警告，不影响系统运行
+**Effect**: Proxy failure emits a warning and the system keeps running.
 
-**输出**：
+**Output**:
 ```
-  [2/5] 初始化: Proxy模块 (优先级: 50)
-  ⚠️  警告: Proxy模块 (耗时: 15ms) - 连接代理服务器超时
+  [2/5] Initializing: Proxy Module (priority: 50)
+  ⚠️  Warning: Proxy Module (elapsed: 15ms) – failed to connect to proxy server
 ```
 
-### 3. 上下文数据共享
+### 3. Context data sharing
 
-模块之间可以通过 Context 共享数据：
+Modules can share data through the initialization context:
 
 ```go
-// database/init.go - 存储数据库实例
+// database/init.go – store the database instance
 func initDatabase(ctx *bootstrap.Context) error {
 	db, err := sql.Open("sqlite", "config.db")
 	if err != nil {
 		return err
 	}
 
-	// 存储到上下文
 	ctx.Set("database", db)
 	return nil
 }
 
-// trader/init.go - 获取数据库实例
+// trader/init.go – retrieve the database instance
 func initTrader(ctx *bootstrap.Context) error {
-	// 从上下文获取数据库实例
 	db, ok := ctx.Get("database")
 	if !ok {
-		return fmt.Errorf("database 未初始化")
+		return fmt.Errorf("database not initialized")
 	}
 
 	database := db.(*sql.DB)
-	// 使用 database 初始化 trader...
+	// Use database to initialize trader...
 	return nil
 }
 ```
 
-**安全获取**：
+**Safe access**:
 ```go
-// 使用 MustGet，不存在会 panic（适合必需的依赖）
+// Use MustGet for required dependencies; it panics if missing
 db := ctx.MustGet("database").(*sql.DB)
 ```
 
-### 4. 链式调用
+### 4. Fluent chaining
 
-支持流畅的链式调用：
+Chain configuration methods for better readability:
 
 ```go
 bootstrap.Register("Proxy", bootstrap.PriorityCore, initProxy).
@@ -232,18 +221,18 @@ bootstrap.Register("Proxy", bootstrap.PriorityCore, initProxy).
 	OnError(bootstrap.WarnOnError)
 ```
 
-### 5. 自定义错误策略
+### 5. Custom default error policy
 
-在 Run 时可以指定全局默认错误策略：
+Specify a default policy when running all hooks:
 
 ```go
-// 所有钩子默认使用 ContinueOnError，除非钩子自己指定了 FailFast
+// All hooks default to ContinueOnError unless overridden
 err := bootstrap.RunWithPolicy(ctx, bootstrap.ContinueOnError)
 ```
 
-## 完整示例
+## Complete Examples
 
-### 示例1：Database 模块
+### Example 1: Database module
 
 ```go
 // database/init.go
@@ -264,18 +253,16 @@ func initDatabase(ctx *bootstrap.Context) error {
 		return err
 	}
 
-	// 测试连接
 	if err := db.Ping(); err != nil {
 		return err
 	}
 
-	// 存储到上下文
 	ctx.Set("database", db)
 	return nil
 }
 ```
 
-### 示例2：Proxy 模块（条件初始化 + 警告策略）
+### Example 2: Proxy module (conditional + warning policy)
 
 ```go
 // proxy/init.go
@@ -291,7 +278,7 @@ func init() {
 		EnabledIf(func(ctx *bootstrap.Context) bool {
 			return ctx.Config.Proxy != nil && ctx.Config.Proxy.Enabled
 		}).
-		OnError(bootstrap.WarnOnError) // Proxy 失败不影响系统
+		OnError(bootstrap.WarnOnError) // Proxy failure does not stop the system
 }
 
 func initProxy(ctx *bootstrap.Context) error {
@@ -306,7 +293,7 @@ func initProxy(ctx *bootstrap.Context) error {
 }
 ```
 
-### 示例3：Trader 模块（依赖其他模块）
+### Example 3: Trader module (depends on other modules)
 
 ```go
 // trader/init.go
@@ -321,117 +308,113 @@ func init() {
 }
 
 func initTrader(ctx *bootstrap.Context) error {
-	// 获取依赖
 	db := ctx.MustGet("database").(*sql.DB)
 
-	// 可选依赖
 	var proxyMgr *proxy.ProxyManager
 	if pm, ok := ctx.Get("proxy_manager"); ok {
 		proxyMgr = pm.(*proxy.ProxyManager)
 	}
 
-	// 使用依赖初始化 trader...
+	// Initialize trader with dependencies...
 	return nil
 }
 ```
 
-## 调试和测试
+## Debugging and Testing
 
-### 查看已注册的钩子
+### Inspect registered hooks
 
 ```go
 hooks := bootstrap.GetRegistered()
 for _, hook := range hooks {
-	fmt.Printf("钩子: %s, 优先级: %d\n", hook.Name, hook.Priority)
+	fmt.Printf("Hook: %s, Priority: %d\n", hook.Name, hook.Priority)
 }
 ```
 
-### 清除钩子（用于测试）
+### Clear hooks (for tests)
 
 ```go
 func TestMyModule(t *testing.T) {
-	// 清除之前注册的钩子
 	bootstrap.Clear()
 
-	// 注册测试钩子
 	bootstrap.Register("Test", 10, func(ctx *bootstrap.Context) error {
 		return nil
 	})
 
-	// 运行测试...
+	// Run tests...
 }
 ```
 
-### 统计钩子数量
+### Count hooks
 
 ```go
 count := bootstrap.Count()
-fmt.Printf("已注册 %d 个初始化钩子\n", count)
+fmt.Printf("%d initialization hooks registered\n", count)
 ```
 
-## 错误处理最佳实践
+## Error Handling Best Practices
 
-### 1. 关键模块使用 FailFast
+### 1. Use FailFast for critical modules
 
 ```go
-// 数据库是关键依赖，失败必须停止
+// Database is critical; stop if it fails
 bootstrap.Register("Database", bootstrap.PriorityDatabase, initDatabase)
-// 默认是 FailFast，无需显式设置
+// FailFast is implied
 ```
 
-### 2. 可选模块使用 WarnOnError
+### 2. Use WarnOnError for optional modules
 
 ```go
-// Proxy 是可选的，失败可以使用直连
+// Proxy is optional; a warning is enough
 bootstrap.Register("Proxy", bootstrap.PriorityCore, initProxy).
 	OnError(bootstrap.WarnOnError)
 ```
 
-### 3. 批量初始化使用 ContinueOnError
+### 3. Use ContinueOnError for batched initialization
 
 ```go
-// 批量加载插件，希望看到所有失败的插件
+// Load a batch of plugins and review all failures together
 for _, plugin := range plugins {
 	bootstrap.Register(plugin.Name, 150, plugin.Init).
 		OnError(bootstrap.ContinueOnError)
 }
 ```
 
-## 常见问题
+## FAQ
 
-### Q1: 如何保证模块A在模块B之前初始化？
+### Q1: How do I guarantee Module A runs before Module B?
 
-使用优先级控制：
+Control the priority values:
 ```go
-bootstrap.Register("ModuleA", 50, initA)  // 先执行
-bootstrap.Register("ModuleB", 100, initB) // 后执行
+bootstrap.Register("ModuleA", 50, initA)  // runs earlier
+bootstrap.Register("ModuleB", 100, initB) // runs later
 ```
 
-### Q2: 如何在初始化失败时获取详细信息？
+### Q2: How can I get detailed information when initialization fails?
 
-钩子名称会自动包含在错误信息中：
+Hook names are included in error messages:
 ```
-Error: [Proxy模块] 初始化失败: 连接代理服务器超时
+Error: [Proxy Module] initialization failed: proxy server connection timed out
 ```
 
-### Q3: 可以动态注册钩子吗？
+### Q3: Can I register hooks dynamically?
 
-可以，但建议在 `init()` 函数中注册：
+Yes, but registering inside `init()` is recommended:
 ```go
-// 推荐：在 init() 中注册（包加载时自动执行）
+// Recommended: register in init() (runs at package load time)
 func init() {
 	bootstrap.Register("MyModule", 100, initModule)
 }
 
-// 不推荐：在运行时注册（可能导致顺序问题）
+// Not recommended: registering at runtime may cause ordering issues
 func main() {
 	bootstrap.Register("MyModule", 100, initModule)
 }
 ```
 
-### Q4: 如何在钩子中访问命令行参数？
+### Q4: How do I access command-line arguments inside a hook?
 
-通过 Context 的 Data 字段传递：
+Pass them through the context:
 ```go
 // main.go
 ctx := bootstrap.NewContext(cfg)
@@ -440,16 +423,17 @@ ctx.Set("args", os.Args)
 // module/init.go
 func initModule(ctx *bootstrap.Context) error {
 	args := ctx.MustGet("args").([]string)
-	// 使用 args...
+	// Use args...
 }
 ```
-## 性能考虑
 
-- 钩子注册是线程安全的，但注册本身有轻微的锁开销
-- 建议在 `init()` 函数中注册，避免运行时动态注册
-- 钩子执行是顺序的，不会并发执行
-- 每个钩子的耗时会被记录并显示
+## Performance Considerations
 
-## 许可证
+- Hook registration is thread-safe but incurs slight locking overhead
+- Register hooks in `init()` to avoid runtime registration costs
+- Hooks execute sequentially, not concurrently
+- Each hook’s duration is logged
 
-本模块为 NOFX 项目内部模块，遵循项目整体许可证。
+## License
+
+This module is part of the internal NOFX project and follows the project’s overall license.

@@ -215,12 +215,12 @@ Decision Parsing → Risk Validation → Execution
 
 **Features:**
 - Multi-timeframe K-line data (3min, 4hour)
-- Technical indicators via TA-Lib:
-  - EMA (20, 50)
-  - MACD
-  - RSI (7, 14)
-  - ATR (volatility)
-- Open Interest tracking
+  - Technical indicators via TA-Lib:
+    - EMA (20, 50)
+    - MACD
+    - RSI (7, 14)
+    - ATR (volatility)
+  - Open Interest tracking
 
 ---
 
