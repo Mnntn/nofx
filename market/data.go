@@ -90,6 +90,9 @@ func Get(symbol string) (*Data, error) {
 	// 计算长期数据
 	longerTermData := calculateLongerTermData(klines4h)
 
+	// 计算Ichimoku Cloud数据 (基于4小时数据)
+	ichimokuData := calculateIchimoku(klines4h)
+
 	return &Data{
 		Symbol:            symbol,
 		CurrentPrice:      currentPrice,
@@ -102,6 +105,7 @@ func Get(symbol string) (*Data, error) {
 		FundingRate:       fundingRate,
 		IntradaySeries:    intradayData,
 		LongerTermContext: longerTermData,
+		IchimokuCloud:     ichimokuData,
 	}, nil
 }
 
@@ -266,6 +270,9 @@ func calculateIntradaySeries(klines []Kline) *IntradayData {
 	// 计算3m ATR14
 	data.ATR14 = calculateATR(klines, 14)
 
+	// 计算Ichimoku Cloud数据 (基于3分钟数据用于短期分析)
+	data.IchimokuCloud = calculateIchimoku(klines)
+
 	return data
 }
 
@@ -311,6 +318,9 @@ func calculateLongerTermData(klines []Kline) *LongerTermData {
 			data.RSI14Values = append(data.RSI14Values, rsi14)
 		}
 	}
+
+	// 计算Ichimoku Cloud数据 (基于4小时数据用于长期分析)
+	data.IchimokuCloud = calculateIchimoku(klines)
 
 	return data
 }
@@ -474,6 +484,65 @@ func Format(data *Data) string {
 		}
 	}
 
+	// Ichimoku Cloud 分析
+	if data.IchimokuCloud != nil {
+		sb.WriteString("Ichimoku Cloud Analysis:\n\n")
+		
+		sb.WriteString(fmt.Sprintf("Tenkan-Sen (Conversion Line): %.4f\n", data.IchimokuCloud.TenkanSen))
+		sb.WriteString(fmt.Sprintf("Kijun-Sen (Base Line): %.4f\n", data.IchimokuCloud.KijunSen))
+		sb.WriteString(fmt.Sprintf("Senkou Span A (Leading Span A): %.4f\n", data.IchimokuCloud.SenkouSpanA))
+		sb.WriteString(fmt.Sprintf("Senkou Span B (Leading Span B): %.4f\n", data.IchimokuCloud.SenkouSpanB))
+		sb.WriteString(fmt.Sprintf("Chikou Span (Lagging Span): %.4f\n\n", data.IchimokuCloud.ChikouSpan))
+		
+		sb.WriteString(fmt.Sprintf("Cloud Color: %s\n", data.IchimokuCloud.CloudColor))
+		sb.WriteString(fmt.Sprintf("Cloud Thickness: %.4f\n", data.IchimokuCloud.CloudThickness))
+		sb.WriteString(fmt.Sprintf("Price Position: %s cloud\n", data.IchimokuCloud.PricePosition))
+		sb.WriteString(fmt.Sprintf("Trend Direction: %s\n\n", data.IchimokuCloud.TrendDirection))
+		
+		// 显示历史序列数据
+		if len(data.IchimokuCloud.TenkanSenSeries) > 0 {
+			sb.WriteString(fmt.Sprintf("Tenkan-Sen Series: %s\n", formatFloatSlice(data.IchimokuCloud.TenkanSenSeries)))
+		}
+		if len(data.IchimokuCloud.KijunSenSeries) > 0 {
+			sb.WriteString(fmt.Sprintf("Kijun-Sen Series: %s\n", formatFloatSlice(data.IchimokuCloud.KijunSenSeries)))
+		}
+		if len(data.IchimokuCloud.SenkouSpanASeries) > 0 {
+			sb.WriteString(fmt.Sprintf("Senkou Span A Series: %s\n", formatFloatSlice(data.IchimokuCloud.SenkouSpanASeries)))
+		}
+		if len(data.IchimokuCloud.SenkouSpanBSeries) > 0 {
+			sb.WriteString(fmt.Sprintf("Senkou Span B Series: %s\n\n", formatFloatSlice(data.IchimokuCloud.SenkouSpanBSeries)))
+		}
+		
+		// 交易信号解释
+		sb.WriteString("Ichimoku Trading Signals:\n")
+		if data.IchimokuCloud.TenkanSen > data.IchimokuCloud.KijunSen {
+			sb.WriteString("• Tenkan above Kijun: Bullish momentum\n")
+		} else if data.IchimokuCloud.TenkanSen < data.IchimokuCloud.KijunSen {
+			sb.WriteString("• Tenkan below Kijun: Bearish momentum\n")
+		} else {
+			sb.WriteString("• Tenkan equals Kijun: Neutral momentum\n")
+		}
+		
+		if data.IchimokuCloud.CloudColor == "bullish" {
+			sb.WriteString("• Bullish Cloud: Span A above Span B\n")
+		} else if data.IchimokuCloud.CloudColor == "bearish" {
+			sb.WriteString("• Bearish Cloud: Span A below Span B\n")
+		} else {
+			sb.WriteString("• Neutral Cloud: Span A equals Span B\n")
+		}
+		
+		switch data.IchimokuCloud.PricePosition {
+		case "above":
+			sb.WriteString("• Price above cloud: Strong bullish signal\n")
+		case "below":
+			sb.WriteString("• Price below cloud: Strong bearish signal\n")
+		case "inside":
+			sb.WriteString("• Price inside cloud: Consolidation/uncertainty\n")
+		}
+		
+		sb.WriteString("\n")
+	}
+
 	return sb.String()
 }
 
@@ -506,6 +575,489 @@ func formatPriceWithDynamicPrecision(price float64) string {
 		// 45678.9123 → "45678.91" (2位小数)
 		return fmt.Sprintf("%.2f", price)
 	}
+}
+
+// checkIchimokuAlerts 检查Ichimoku相关的交易信号并生成警报
+func checkIchimokuAlerts(symbol string, current, previous *IchimokuData, alertsChan chan<- Alert) {
+	if current == nil || previous == nil {
+		return
+	}
+
+	// 1. 检查Tenkan-Kijun交叉信号 (金叉/死叉)
+	if config.AlertThresholds.IchimokuGoldenCross {
+		// 金叉信号: Tenkan从下方穿越Kijun
+		if current.TenkanSen > current.KijunSen && previous.TenkanSen <= previous.KijunSen {
+			alert := Alert{
+				Type:      "ichimoku_golden_cross",
+				Symbol:    symbol,
+				Value:     current.TenkanSen,
+				Threshold: current.KijunSen,
+				Message:   fmt.Sprintf("Ichimoku Golden Cross: Tenkan-Sen (%.4f) crosses above Kijun-Sen (%.4f)", current.TenkanSen, current.KijunSen),
+				Timestamp: time.Now(),
+			}
+			select {
+			case alertsChan <- alert:
+			default:
+				// 通道满了，跳过这个警报
+			}
+		}
+	}
+
+	if config.AlertThresholds.IchimokuDeadCross {
+		// 死叉信号: Tenkan从上方穿越Kijun
+		if current.TenkanSen < current.KijunSen && previous.TenkanSen >= previous.KijunSen {
+			alert := Alert{
+				Type:      "ichimoku_dead_cross",
+				Symbol:    symbol,
+				Value:     current.TenkanSen,
+				Threshold: current.KijunSen,
+				Message:   fmt.Sprintf("Ichimoku Dead Cross: Tenkan-Sen (%.4f) crosses below Kijun-Sen (%.4f)", current.TenkanSen, current.KijunSen),
+				Timestamp: time.Now(),
+			}
+			select {
+			case alertsChan <- alert:
+			default:
+			}
+		}
+	}
+
+	// 2. 检查云层突破信号
+	if config.AlertThresholds.IchimokuCloudBreak {
+		if current.PricePosition != previous.PricePosition {
+			var message string
+			var alertType string
+			
+			switch {
+			case current.PricePosition == "above" && previous.PricePosition != "above":
+				alertType = "ichimoku_cloud_break_up"
+				message = fmt.Sprintf("Price breaks above Ichimoku Cloud (from %s to above)", previous.PricePosition)
+			case current.PricePosition == "below" && previous.PricePosition != "below":
+				alertType = "ichimoku_cloud_break_down"
+				message = fmt.Sprintf("Price breaks below Ichimoku Cloud (from %s to below)", previous.PricePosition)
+			case current.PricePosition == "inside":
+				alertType = "ichimoku_cloud_entry"
+				message = fmt.Sprintf("Price enters Ichimoku Cloud (from %s to inside)", previous.PricePosition)
+			default:
+				return // 不生成警报
+			}
+			
+			alert := Alert{
+				Type:      alertType,
+				Symbol:    symbol,
+				Value:     current.CloudThickness,
+				Threshold: config.AlertThresholds.CloudThicknessMin,
+				Message:   message,
+				Timestamp: time.Now(),
+			}
+			select {
+			case alertsChan <- alert:
+			default:
+			}
+		}
+	}
+
+	// 3. 检查云层扭转信号 (云颜色变化)
+	if current.CloudColor != previous.CloudColor && current.CloudColor != "neutral" {
+		alertType := "ichimoku_cloud_twist"
+		message := fmt.Sprintf("Ichimoku Cloud twist: Color changed from %s to %s", previous.CloudColor, current.CloudColor)
+		
+		alert := Alert{
+			Type:      alertType,
+			Symbol:    symbol,
+			Value:     current.CloudThickness,
+			Threshold: config.AlertThresholds.CloudThicknessMin,
+			Message:   message,
+			Timestamp: time.Now(),
+		}
+		select {
+		case alertsChan <- alert:
+		default:
+		}
+	}
+
+	// 4. 检查云层厚度变化 (薄云更容易突破)
+	if current.CloudThickness < config.AlertThresholds.CloudThicknessMin &&
+	   previous.CloudThickness >= config.AlertThresholds.CloudThicknessMin {
+		alert := Alert{
+			Type:      "ichimoku_thin_cloud",
+			Symbol:    symbol,
+			Value:     current.CloudThickness,
+			Threshold: config.AlertThresholds.CloudThicknessMin,
+			Message:   fmt.Sprintf("Ichimoku Cloud becomes thin (%.6f), potential breakout zone", current.CloudThickness),
+			Timestamp: time.Now(),
+		}
+		select {
+		case alertsChan <- alert:
+		default:
+		}
+	}
+
+	// 5. 检查趋势方向变化
+	if current.TrendDirection != previous.TrendDirection && current.TrendDirection != "sideways" {
+		alert := Alert{
+			Type:      "ichimoku_trend_change",
+			Symbol:    symbol,
+			Value:     0, // 趋势变化没有数值
+			Threshold: 0,
+			Message:   fmt.Sprintf("Ichimoku trend change: %s to %s", previous.TrendDirection, current.TrendDirection),
+			Timestamp: time.Now(),
+		}
+		select {
+		case alertsChan <- alert:
+		default:
+		}
+	}
+}
+
+// calculateIchimoku 计算Ichimoku Cloud指标
+func calculateIchimoku(klines []Kline) *IchimokuData {
+	if len(klines) < 52 { // 至少需要52个数据点来计算所有组件
+		return &IchimokuData{
+			CloudColor:     "neutral",
+			PricePosition:  "unknown",
+			TrendDirection: "sideways",
+		}
+	}
+
+	// 计算当前值
+	tenkanSen := calculateTenkanSen(klines, 9)
+	kijunSen := calculateKijunSen(klines, 26)
+	senkouSpanA := calculateSenkouSpanA(tenkanSen, kijunSen)
+	senkouSpanB := calculateSenkouSpanB(klines, 52)
+	chikouSpan := calculateChikouSpan(klines, 26)
+
+	// 计算云的属性
+	cloudColor := "neutral"
+	if senkouSpanA > senkouSpanB {
+		cloudColor = "bullish"
+	} else if senkouSpanA < senkouSpanB {
+		cloudColor = "bearish"
+	}
+
+	cloudThickness := math.Abs(senkouSpanA - senkouSpanB)
+	
+	// 确定价格相对云的位置
+	currentPrice := klines[len(klines)-1].Close
+	pricePosition := determinePricePosition(currentPrice, senkouSpanA, senkouSpanB)
+	
+	// 确定趋势方向
+	trendDirection := determineTrendDirection(tenkanSen, kijunSen, senkouSpanA, senkouSpanB, currentPrice)
+
+	// 计算历史序列 (最近10个数据点)
+	tenkanSeries := calculateIchimokuSeries(klines, 9, calculateTenkanSenForPeriod)
+	kijunSeries := calculateIchimokuSeries(klines, 26, calculateKijunSenForPeriod)
+	spanASeries := calculateSenkouSpanASeries(klines)
+	spanBSeries := calculateIchimokuSeries(klines, 52, calculateSenkouSpanBForPeriod)
+
+	return &IchimokuData{
+		TenkanSen:         tenkanSen,
+		KijunSen:          kijunSen,
+		SenkouSpanA:       senkouSpanA,
+		SenkouSpanB:       senkouSpanB,
+		ChikouSpan:        chikouSpan,
+		CloudColor:        cloudColor,
+		CloudThickness:    cloudThickness,
+		PricePosition:     pricePosition,
+		TrendDirection:    trendDirection,
+		TenkanSenSeries:   tenkanSeries,
+		KijunSenSeries:    kijunSeries,
+		SenkouSpanASeries: spanASeries,
+		SenkouSpanBSeries: spanBSeries,
+	}
+}
+
+// calculateTenkanSen 计算转换线 (Tenkan-Sen) - 9期
+func calculateTenkanSen(klines []Kline, period int) float64 {
+	if len(klines) < period {
+		return 0
+	}
+	
+	start := len(klines) - period
+	highest := klines[start].High
+	lowest := klines[start].Low
+	
+	for i := start + 1; i < len(klines); i++ {
+		if klines[i].High > highest {
+			highest = klines[i].High
+		}
+		if klines[i].Low < lowest {
+			lowest = klines[i].Low
+		}
+	}
+	
+	return (highest + lowest) / 2
+}
+
+// calculateKijunSen 计算基准线 (Kijun-Sen) - 26期
+func calculateKijunSen(klines []Kline, period int) float64 {
+	if len(klines) < period {
+		return 0
+	}
+	
+	start := len(klines) - period
+	highest := klines[start].High
+	lowest := klines[start].Low
+	
+	for i := start + 1; i < len(klines); i++ {
+		if klines[i].High > highest {
+			highest = klines[i].High
+		}
+		if klines[i].Low < lowest {
+			lowest = klines[i].Low
+		}
+	}
+	
+	return (highest + lowest) / 2
+}
+
+// calculateSenkouSpanA 计算先行带A (Senkou Span A)
+func calculateSenkouSpanA(tenkanSen, kijunSen float64) float64 {
+	return (tenkanSen + kijunSen) / 2
+}
+
+// calculateSenkouSpanB 计算先行带B (Senkou Span B) - 52期
+func calculateSenkouSpanB(klines []Kline, period int) float64 {
+	if len(klines) < period {
+		return 0
+	}
+	
+	start := len(klines) - period
+	highest := klines[start].High
+	lowest := klines[start].Low
+	
+	for i := start + 1; i < len(klines); i++ {
+		if klines[i].High > highest {
+			highest = klines[i].High
+		}
+		if klines[i].Low < lowest {
+			lowest = klines[i].Low
+		}
+	}
+	
+	return (highest + lowest) / 2
+}
+
+// calculateChikouSpan 计算迟行线 (Chikou Span)
+func calculateChikouSpan(klines []Kline, displacement int) float64 {
+	if len(klines) < displacement {
+		return 0
+	}
+	
+	// 迟行线是当前价格向前位移26期
+	return klines[len(klines)-1].Close
+}
+
+// determinePricePosition 确定价格相对云的位置
+func determinePricePosition(price, spanA, spanB float64) string {
+	cloudTop := math.Max(spanA, spanB)
+	cloudBottom := math.Min(spanA, spanB)
+	
+	if price > cloudTop {
+		return "above"
+	} else if price < cloudBottom {
+		return "below"
+	} else {
+		return "inside"
+	}
+}
+
+// determineTrendDirection 确定趋势方向
+func determineTrendDirection(tenkan, kijun, spanA, spanB, price float64) string {
+	// 多重条件判断趋势
+	bullishSignals := 0
+	bearishSignals := 0
+	
+	// 1. Tenkan vs Kijun
+	if tenkan > kijun {
+		bullishSignals++
+	} else if tenkan < kijun {
+		bearishSignals++
+	}
+	
+	// 2. 云的颜色
+	if spanA > spanB {
+		bullishSignals++
+	} else if spanA < spanB {
+		bearishSignals++
+	}
+	
+	// 3. 价格相对云的位置
+	cloudTop := math.Max(spanA, spanB)
+	cloudBottom := math.Min(spanA, spanB)
+	if price > cloudTop {
+		bullishSignals++
+	} else if price < cloudBottom {
+		bearishSignals++
+	}
+	
+	if bullishSignals > bearishSignals {
+		return "bullish"
+	} else if bearishSignals > bullishSignals {
+		return "bearish"
+	} else {
+		return "sideways"
+	}
+}
+
+// calculateIchimokuSeries 计算Ichimoku组件的历史序列
+func calculateIchimokuSeries(klines []Kline, period int, calcFunc func([]Kline, int, int) float64) []float64 {
+	series := make([]float64, 0, 10)
+	
+	// 获取最近10个数据点
+	start := len(klines) - 10
+	if start < 0 {
+		start = 0
+	}
+	
+	for i := start; i < len(klines); i++ {
+		if i >= period-1 {
+			value := calcFunc(klines, period, i)
+			series = append(series, value)
+		}
+	}
+	
+	return series
+}
+
+// calculateTenkanSenForPeriod 为特定索引计算Tenkan-Sen
+func calculateTenkanSenForPeriod(klines []Kline, period, endIndex int) float64 {
+	if endIndex < period-1 {
+		return 0
+	}
+	
+	start := endIndex - period + 1
+	highest := klines[start].High
+	lowest := klines[start].Low
+	
+	for i := start + 1; i <= endIndex; i++ {
+		if klines[i].High > highest {
+			highest = klines[i].High
+		}
+		if klines[i].Low < lowest {
+			lowest = klines[i].Low
+		}
+	}
+	
+	return (highest + lowest) / 2
+}
+
+// calculateKijunSenForPeriod 为特定索引计算Kijun-Sen
+func calculateKijunSenForPeriod(klines []Kline, period, endIndex int) float64 {
+	if endIndex < period-1 {
+		return 0
+	}
+	
+	start := endIndex - period + 1
+	highest := klines[start].High
+	lowest := klines[start].Low
+	
+	for i := start + 1; i <= endIndex; i++ {
+		if klines[i].High > highest {
+			highest = klines[i].High
+		}
+		if klines[i].Low < lowest {
+			lowest = klines[i].Low
+		}
+	}
+	
+	return (highest + lowest) / 2
+}
+
+// calculateSenkouSpanBForPeriod 为特定索引计算Senkou Span B
+func calculateSenkouSpanBForPeriod(klines []Kline, period, endIndex int) float64 {
+	if endIndex < period-1 {
+		return 0
+	}
+	
+	start := endIndex - period + 1
+	highest := klines[start].High
+	lowest := klines[start].Low
+	
+	for i := start + 1; i <= endIndex; i++ {
+		if klines[i].High > highest {
+			highest = klines[i].High
+		}
+		if klines[i].Low < lowest {
+			lowest = klines[i].Low
+		}
+	}
+	
+	return (highest + lowest) / 2
+}
+
+// calculateSenkouSpanASeries 计算Senkou Span A的历史序列
+func calculateSenkouSpanASeries(klines []Kline) []float64 {
+	series := make([]float64, 0, 10)
+	
+	// 获取最近10个数据点
+	start := len(klines) - 10
+	if start < 0 {
+		start = 0
+	}
+	
+	for i := start; i < len(klines); i++ {
+		if i >= 25 { // 需要至少26个数据点来计算Kijun-Sen
+			tenkan := calculateTenkanSenForPeriod(klines, 9, i)
+			kijun := calculateKijunSenForPeriod(klines, 26, i)
+			spanA := (tenkan + kijun) / 2
+			series = append(series, spanA)
+		}
+	}
+	
+	return series
+}
+
+// generateIchimokuSignals 生成Ichimoku交易信号
+func generateIchimokuSignals(current, previous *IchimokuData) []IchimokuSignal {
+	var signals []IchimokuSignal
+	
+	if previous == nil {
+		return signals
+	}
+	
+	// 1. Tenkan-Kijun交叉信号
+	if current.TenkanSen > current.KijunSen && previous.TenkanSen <= previous.KijunSen {
+		signals = append(signals, IchimokuSignal{
+			Type:        "golden_cross",
+			Strength:    75.0,
+			Description: "Tenkan-Sen crosses above Kijun-Sen (Golden Cross)",
+			Timestamp:   time.Now(),
+		})
+	} else if current.TenkanSen < current.KijunSen && previous.TenkanSen >= previous.KijunSen {
+		signals = append(signals, IchimokuSignal{
+			Type:        "dead_cross",
+			Strength:    75.0,
+			Description: "Tenkan-Sen crosses below Kijun-Sen (Dead Cross)",
+			Timestamp:   time.Now(),
+		})
+	}
+	
+	// 2. 云层突破信号
+	if current.PricePosition != previous.PricePosition {
+		strength := 60.0
+		if current.CloudThickness > previous.CloudThickness {
+			strength = 80.0 // 厚云突破更强
+		}
+		
+		signals = append(signals, IchimokuSignal{
+			Type:        "cloud_break",
+			Strength:    strength,
+			Description: fmt.Sprintf("Price moved from %s to %s cloud", previous.PricePosition, current.PricePosition),
+			Timestamp:   time.Now(),
+		})
+	}
+	
+	// 3. 云颜色变化信号
+	if current.CloudColor != previous.CloudColor && current.CloudColor != "neutral" {
+		signals = append(signals, IchimokuSignal{
+			Type:        "cloud_twist",
+			Strength:    65.0,
+			Description: fmt.Sprintf("Cloud color changed to %s", current.CloudColor),
+			Timestamp:   time.Now(),
+		})
+	}
+	
+	return signals
 }
 
 // formatFloatSlice 格式化float64切片为字符串（使用动态精度）
