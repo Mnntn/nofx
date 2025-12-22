@@ -222,6 +222,7 @@ func (tm *TraderManager) addTraderFromDB(traderCfg *config.TraderRecord, aiModel
 		BinanceSecretKey:      "",
 		HyperliquidPrivateKey: "",
 		HyperliquidTestnet:    exchangeCfg.Testnet,
+		BingxTestnet:          exchangeCfg.Testnet,
 		CoinPoolAPIURL:        effectiveCoinPoolURL,
 		UseQwen:               aiModelCfg.Provider == "qwen",
 		DeepSeekKey:           "",
@@ -242,7 +243,7 @@ func (tm *TraderManager) addTraderFromDB(traderCfg *config.TraderRecord, aiModel
 	}
 
 	// 根据交易所类型设置API密钥
-	if exchangeCfg.ID == "binance" {
+	if exchangeCfg.ID == "binance" || exchangeCfg.ID == "bingx" {
 		traderConfig.BinanceAPIKey = exchangeCfg.APIKey
 		traderConfig.BinanceSecretKey = exchangeCfg.SecretKey
 	} else if exchangeCfg.ID == "hyperliquid" {
@@ -348,7 +349,7 @@ func (tm *TraderManager) AddTraderFromDB(traderCfg *config.TraderRecord, aiModel
 	}
 
 	// 根据交易所类型设置API密钥
-	if exchangeCfg.ID == "binance" {
+	if exchangeCfg.ID == "binance" || exchangeCfg.ID == "bingx" {
 		traderConfig.BinanceAPIKey = exchangeCfg.APIKey
 		traderConfig.BinanceSecretKey = exchangeCfg.SecretKey
 	} else if exchangeCfg.ID == "hyperliquid" {
@@ -1043,10 +1044,11 @@ func (tm *TraderManager) loadSingleTrader(traderCfg *config.TraderRecord, aiMode
 		TradingCoins:         tradingCoins,
 		SystemPromptTemplate: traderCfg.SystemPromptTemplate, // 系统提示词模板
 		HyperliquidTestnet:   exchangeCfg.Testnet,            // Hyperliquid测试网
+		BingxTestnet:         exchangeCfg.Testnet,
 	}
 
 	// 根据交易所类型设置API密钥
-	if exchangeCfg.ID == "binance" {
+	if exchangeCfg.ID == "binance" || exchangeCfg.ID == "bingx" {
 		traderConfig.BinanceAPIKey = exchangeCfg.APIKey
 		traderConfig.BinanceSecretKey = exchangeCfg.SecretKey
 	} else if exchangeCfg.ID == "hyperliquid" {

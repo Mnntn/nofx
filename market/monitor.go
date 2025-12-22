@@ -19,16 +19,19 @@ type WSMonitor struct {
 	klineDataMap4h sync.Map // 存储每个交易对的K线历史数据
 	tickerDataMap  sync.Map // 存储每个交易对的ticker数据
 	batchSize      int
-	filterSymbols  sync.Map // 使用sync.Map来存储需要监控的币种和其状态
-	symbolStats    sync.Map // 存储币种统计信息
-	FilterSymbol   []string //经过筛选的币种
+	filterSymbols     sync.Map // 使用sync.Map来存储需要监控的币种和其状态
+	symbolStats       sync.Map // 存储币种统计信息
+	FilterSymbol      []string //经过筛选的币种
+	ichimokuDataMap3m sync.Map // 存储每个交易对的Ichimoku数据(3分钟)
+	ichimokuDataMap4h sync.Map // 存储每个交易对的Ichimoku数据(4小时)
 }
 type SymbolStats struct {
-	LastActiveTime   time.Time
-	AlertCount       int
-	VolumeSpikeCount int
-	LastAlertTime    time.Time
-	Score            float64 // 综合评分
+	LastActiveTime     time.Time
+	AlertCount         int
+	VolumeSpikeCount   int
+	LastAlertTime      time.Time
+	Score              float64 // 综合评分
+	IchimokuAlertCount int     // Ichimoku警报计数
 }
 
 var WSMonitorCli *WSMonitor
@@ -230,7 +233,76 @@ func (m *WSMonitor) processKlineUpdate(symbol string, wsData KlineWSData, _time 
 	}
 
 	klineDataMap.Store(symbol, klines)
+	
+	// 检查Ichimoku警报 (仅在4小时数据更新时进行，因为Ichimoku更适合长期分析)
+	if _time == "4h" && len(klines) >= 52 {
+		m.checkIchimokuAlertsForSymbol(symbol, klines)
+	}
 }
+
+// checkIchimokuAlertsForSymbol 为特定币种检查Ichimoku警报
+func (m *WSMonitor) checkIchimokuAlertsForSymbol(symbol string, klines []Kline) {
+	// 计算当前Ichimoku数据
+	currentIchimoku := calculateIchimoku(klines)
+	if currentIchimoku == nil {
+		return
+	}
+	
+	// 获取之前的Ichimoku数据
+	var previousIchimoku *IchimokuData
+	if prevData, exists := m.ichimokuDataMap4h.Load(symbol); exists {
+		previousIchimoku = prevData.(*IchimokuData)
+	}
+	
+	// 检查警报
+	if previousIchimoku != nil {
+		checkIchimokuAlerts(symbol, currentIchimoku, previousIchimoku, m.alertsChan)
+		
+		// 更新统计信息
+		if statsInterface, exists := m.symbolStats.Load(symbol); exists {
+			stats := statsInterface.(*SymbolStats)
+			stats.IchimokuAlertCount++
+			stats.LastAlertTime = time.Now()
+			stats.Score += 5.0 // Ichimoku信号增加评分
+			m.symbolStats.Store(symbol, stats)
+		} else {
+			// 创建新的统计信息
+			newStats := &SymbolStats{
+				LastActiveTime:     time.Now(),
+				AlertCount:         0,
+				VolumeSpikeCount:   0,
+				LastAlertTime:      time.Now(),
+				Score:              5.0,
+				IchimokuAlertCount: 1,
+			}
+			m.symbolStats.Store(symbol, newStats)
+		}
+	}
+	
+	// 存储当前Ichimoku数据供下次比较
+	m.ichimokuDataMap4h.Store(symbol, currentIchimoku)
+}
+
+// GetIchimokuData 获取指定币种的Ichimoku数据
+func (m *WSMonitor) GetIchimokuData(symbol string, timeframe string) (*IchimokuData, bool) {
+	var dataMap *sync.Map
+	if timeframe == "3m" {
+		dataMap = &m.ichimokuDataMap3m
+	} else if timeframe == "4h" {
+		dataMap = &m.ichimokuDataMap4h
+	} else {
+		return nil, false
+	}
+	
+	if data, exists := dataMap.Load(symbol); exists {
+		return data.(*IchimokuData), true
+	}
+	return nil, false
+}
+
+// GetAlertsChannel 获取警报通道 (供外部模块使用)
+func (m *WSMonitor) GetAlertsChannel() <-chan Alert {
+	return m.alertsChan
 
 func (m *WSMonitor) GetCurrentKlines(symbol string, _time string) ([]Kline, error) {
 	// 对每一个进来的symbol检测是否存在内类 是否的话就订阅它

@@ -273,7 +273,7 @@ func ce(a, s string) *Exchange {
 // ✅ Good: Type-safe, clear naming
 interface TraderConfig {
   id: string;
-  exchange: 'binance' | 'hyperliquid' | 'aster';
+  exchange: 'binance' | 'bingx' | 'hyperliquid' | 'aster';
   aiModel: string;
   enabled: boolean;
 }

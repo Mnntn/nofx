@@ -387,7 +387,7 @@ func (t *FuturesTrader) OpenShort(symbol string, quantity float64, leverage int)
 		return nil, err
 	}
 
-	// ✅ 检查格式化后的数量是否为 0（防止四舍五入导致的错误）
+	// ✅ Check if the formatted quantity is 0 (prevent errors caused by rounding)
 	quantityFloat, parseErr := strconv.ParseFloat(quantityStr, 64)
 	if parseErr != nil || quantityFloat <= 0 {
 		return nil, fmt.Errorf("开仓数量过小，格式化后为 0 (原始: %.8f → 格式化: %s)。建议增加开仓金额或选择价格更低的币种", quantity, quantityStr)

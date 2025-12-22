@@ -376,7 +376,7 @@ func (cs *CryptoService) DecryptPayload(payload *EncryptedPayload) ([]byte, erro
 		return nil, fmt.Errorf("invalid IV size: expected %d, got %d", gcm.NonceSize(), len(iv))
 	}
 
-	// 解密并验证认证标签
+	// Decrypt and verify authentication tag
 	plaintext, err := gcm.Open(nil, iv, ciphertext, aad)
 	if err != nil {
 		return nil, fmt.Errorf("authentication/decryption failed: %w", err)

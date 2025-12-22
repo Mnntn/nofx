@@ -81,7 +81,7 @@
 
 ### 🚀 多交易所支持！
 
-NOFX现已支持**三大交易所**：Binance、Hyperliquid和Aster DEX！
+NOFX现已支持**四大交易所**：Binance、BingX、Hyperliquid和Aster DEX！
 
 #### **Hyperliquid交易所**
 
@@ -171,7 +171,7 @@ NOFX 目前已在**加密货币市场全面运行**，具备以下经过验证�
 - **技术指标**：EMA20/50、MACD、RSI(7/14)、ATR
 - **持仓量追踪**：市场情绪、资金流向分析
 - **流动性过滤**：自动过滤低流动性资产（<15M USD）
-- **跨交易所支持**：Binance、Hyperliquid、Aster DEX，统一数据接口
+- **跨交易所支持**：Binance、BingX、Hyperliquid、Aster DEX，统一数据接口
 
 ### 🎯 统一风控系统
 - **仓位限制**：单资产限制（山寨币≤1.5x净值，BTC/ETH≤10x净值）
@@ -181,7 +181,7 @@ NOFX 目前已在**加密货币市场全面运行**，具备以下经过验证�
 - **防叠加保护**：防止同一资产/方向的重复仓位
 
 ### ⚡ 低延迟执行引擎
-- **多交易所 API 集成**：Binance Futures、Hyperliquid DEX、Aster DEX
+- **多交易所 API 集成**：Binance Futures、BingX 永续、Hyperliquid DEX、Aster DEX
 - **自动精度处理**：每个交易所智能订单大小和价格格式化
 - **优先级执行**：先平仓现有持仓，再开新仓
 - **滑点控制**：执行前验证，实时精度检查
@@ -226,7 +226,7 @@ NOFX 采用现代化的模块化架构：
 
 - **后端：** Go + Gin 框架，SQLite 数据库
 - **前端：** React 18 + TypeScript + Vite + TailwindCSS
-- **多交易所支持：** Binance、Hyperliquid、Aster DEX
+- **多交易所支持：** Binance、BingX、Hyperliquid、Aster DEX
 - **AI 集成：** DeepSeek、Qwen 及自定义 OpenAI 兼容 API
 - **状态管理：** 前端 Zustand，后端数据库驱动
 - **实时更新：** SWR，5-10 秒轮询间隔
@@ -523,6 +523,19 @@ cp config.json.example config.json
 - 设置`hyperliquid_testnet: false`用于主网（或`true`用于测试网）
 
 **⚠️ 安全警告**：切勿分享你的私钥！使用专门的钱包进行交易，而非主钱包。
+
+---
+
+#### 🔵 备选：使用 BingX 交易所
+
+**NOFX 现已支持 BingX 永续合约**，同样适用于 AI 策略驱动：
+
+1. 在 [BingX API 管理](https://bingx.com/) 创建 API Key，并开启合约权限。
+2. 如果需要连接 BingX VST 测试网，在 NOFX 中保存 BingX 时切换 **Testnet** 选项。
+3. 按 Binance 的方式，将 NOFX 显示的服务器 IP 添加到 BingX 白名单。
+4. 打开 **设置 → 交易所**，选择 **BingX**，填写 API Key 与 Secret 即可使用。
+
+📘 官方文档：[https://bingx-api.github.io/docs/#/en-us/](https://bingx-api.github.io/docs/#/en-us/)
 
 ---
 

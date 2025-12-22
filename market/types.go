@@ -15,6 +15,7 @@ type Data struct {
 	FundingRate       float64
 	IntradaySeries    *IntradayData
 	LongerTermContext *LongerTermData
+	IchimokuCloud     *IchimokuData
 }
 
 // OIData Open Interest数据
@@ -29,9 +30,10 @@ type IntradayData struct {
 	EMA20Values []float64
 	MACDValues  []float64
 	RSI7Values  []float64
-	RSI14Values []float64
-	Volume      []float64
-	ATR14       float64
+	RSI14Values   []float64
+	Volume        []float64
+	ATR14         float64
+	IchimokuCloud *IchimokuData
 }
 
 // LongerTermData 长期数据(4小时时间框架)
@@ -44,6 +46,34 @@ type LongerTermData struct {
 	AverageVolume float64
 	MACDValues    []float64
 	RSI14Values   []float64
+	IchimokuCloud *IchimokuData
+}
+
+// IchimokuData Ichimoku Cloud数据结构
+type IchimokuData struct {
+	TenkanSen    float64   `json:"tenkan_sen"`    // 转换线 (快线) - 9期
+	KijunSen     float64   `json:"kijun_sen"`     // 基准线 (慢线) - 26期
+	SenkouSpanA  float64   `json:"senkou_span_a"` // 先行带A (云的上边界/下边界)
+	SenkouSpanB  float64   `json:"senkou_span_b"` // 先行带B (云的上边界/下边界)
+	ChikouSpan   float64   `json:"chikou_span"`   // 迟行线
+	CloudColor   string    `json:"cloud_color"`   // 云的颜色: "bullish" (绿色) 或 "bearish" (红色)
+	CloudThickness float64 `json:"cloud_thickness"` // 云的厚度 (SpanA和SpanB的差值绝对值)
+	PricePosition string   `json:"price_position"`  // 价格相对云的位置: "above", "below", "inside"
+	TrendDirection string  `json:"trend_direction"` // 趋势方向: "bullish", "bearish", "sideways"
+	
+	// 历史数据序列 (用于分析趋势变化)
+	TenkanSenSeries  []float64 `json:"tenkan_sen_series"`
+	KijunSenSeries   []float64 `json:"kijun_sen_series"`
+	SenkouSpanASeries []float64 `json:"senkou_span_a_series"`
+	SenkouSpanBSeries []float64 `json:"senkou_span_b_series"`
+}
+
+// IchimokuSignal Ichimoku交易信号
+type IchimokuSignal struct {
+	Type        string  `json:"type"`        // 信号类型
+	Strength    float64 `json:"strength"`    // 信号强度 (0-100)
+	Description string  `json:"description"` // 信号描述
+	Timestamp   time.Time `json:"timestamp"` // 信号时间
 }
 
 // Binance API 响应结构
@@ -133,6 +163,13 @@ type AlertThresholds struct {
 	VolumeTrend      float64 `json:"volume_trend"`
 	RSIOverbought    float64 `json:"rsi_overbought"`
 	RSIOversold      float64 `json:"rsi_oversold"`
+	
+	// Ichimoku Cloud 阈值
+	IchimokuGoldenCross  bool    `json:"ichimoku_golden_cross"`  // Tenkan-Kijun金叉信号
+	IchimokuDeadCross    bool    `json:"ichimoku_dead_cross"`    // Tenkan-Kijun死叉信号
+	IchimokuCloudBreak   bool    `json:"ichimoku_cloud_break"`   // 价格突破云层信号
+	IchimokuChikouBreak  bool    `json:"ichimoku_chikou_break"`  // Chikou突破价格信号
+	CloudThicknessMin    float64 `json:"cloud_thickness_min"`    // 云层最小厚度阈值
 }
 type CleanupConfig struct {
 	InactiveTimeout   time.Duration `json:"inactive_timeout"`    // 不活跃超时时间
@@ -148,6 +185,13 @@ var config = Config{
 		VolumeTrend:      2.0,
 		RSIOverbought:    70,
 		RSIOversold:      30,
+		
+		// Ichimoku Cloud 默认阈值
+		IchimokuGoldenCross:  true,  // 启用金叉信号
+		IchimokuDeadCross:    true,  // 启用死叉信号
+		IchimokuCloudBreak:   true,  // 启用云层突破信号
+		IchimokuChikouBreak:  true,  // 启用Chikou突破信号
+		CloudThicknessMin:    0.001, // 云层最小厚度 (价格的0.1%)
 	},
 	CleanupConfig: CleanupConfig{
 		InactiveTimeout:   30 * time.Minute,
