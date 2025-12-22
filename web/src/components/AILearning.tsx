@@ -371,10 +371,10 @@ export default function AILearning({ traderId }: AILearningProps) {
               </div>
               <div>
                 <div className="text-lg font-bold" style={{ color: '#C4B5FD' }}>
-                  夏普比率
+                  Sharpe Ratio
                 </div>
                 <div className="text-xs" style={{ color: '#94A3B8' }}>
-                  风险调整后收益 · AI自我进化指标
+                  Risk-adjusted return · AI self-evolution metric
                 </div>
               </div>
             </div>
@@ -423,12 +423,12 @@ export default function AILearning({ traderId }: AILearningProps) {
                     }}
                   >
                     {performance.sharpe_ratio >= 2
-                      ? '🟢 卓越表现'
+                      ? '🟢 Excellent performance'
                       : performance.sharpe_ratio >= 1
-                        ? '🟢 良好表现'
+                        ? '🟢 Good performance'
                         : performance.sharpe_ratio >= 0
-                          ? '🟡 波动较大'
-                          : '🔴 需要调整'}
+                          ? '🟡 Volatility is high'
+                          : '🔴 Need adjustment'}
                   </div>
                 </div>
               )}
@@ -447,15 +447,15 @@ export default function AILearning({ traderId }: AILearningProps) {
                   style={{ color: '#DDD6FE' }}
                 >
                   {performance.sharpe_ratio >= 2 &&
-                    '✨ AI策略非常有效！风险调整后收益优异，可适度扩大仓位但保持纪律。'}
+                    '✨ AI strategy is very effective! Risk-adjusted return is excellent, can moderately increase position size but maintain discipline.'}
                   {performance.sharpe_ratio >= 1 &&
                     performance.sharpe_ratio < 2 &&
-                    '✅ 策略表现稳健，风险收益平衡良好，继续保持当前策略。'}
+                    '✅ Strategy performance is stable, risk-reward balance is good, continue to maintain the current strategy.'}
                   {performance.sharpe_ratio >= 0 &&
                     performance.sharpe_ratio < 1 &&
-                    '⚠️ 收益为正但波动较大，AI正在优化策略，降低风险。'}
+                    '⚠️ Positive return but high volatility, AI is optimizing the strategy, reducing risk.'}
                   {performance.sharpe_ratio < 0 &&
-                    '🚨 当前策略需要调整！AI已自动进入保守模式，减少仓位和交易频率。'}
+                    '🚨 The current strategy needs adjustment! AI has automatically entered a conservative mode, reducing position size and trading frequency.'}
                 </div>
               </div>
             )}

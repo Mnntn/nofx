@@ -39,22 +39,22 @@ func TestCalculateIntradaySeries_VolumeCollection(t *testing.T) {
 		expectedVolLen int
 	}{
 		{
-			name:           "正常情况 - 20个K线",
+			name:           "Normal case - 20 klines",
 			klineCount:     20,
-			expectedVolLen: 10, // 应该收集最近10个
+			expectedVolLen: 10, // Should collect the last 10
 		},
 		{
-			name:           "刚好10个K线",
+			name:           "Exactly 10 klines",
 			klineCount:     10,
 			expectedVolLen: 10,
 		},
 		{
-			name:           "少于10个K线",
+			name:           "Less than 10 klines",
 			klineCount:     5,
-			expectedVolLen: 5, // 应该返回所有5个
+			expectedVolLen: 5, // Should return all 5
 		},
 		{
-			name:           "超过10个K线",
+			name:           "More than 10 klines",
 			klineCount:     30,
 			expectedVolLen: 10, // 应该只返回最近10个
 		},

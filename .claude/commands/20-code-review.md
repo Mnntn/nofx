@@ -1,329 +1,329 @@
 ---
 name: code-review
-description: 通用代码审查命令，基于业务需求进行白盒逻辑正确性审查和技术架构评估
+description: General code review command for white-box logic correctness review and technical architecture evaluation based on business requirements
 ---
 
-# 代码审查命令
+# Code Review Command
 
-## 审查任务
+## Review Task
 
-请对当前工作区的代码修改进行全面审查，重点关注业务逻辑的正确性和技术架构的合理性。
+Please conduct a comprehensive review of code changes in the current workspace, focusing on the correctness of business logic and the rationality of technical architecture.
 
-## 审查维度
+## Review Dimensions
 
-### 1. 业务层面审查（BLOCKING级别）
-- **需求来源验证**：寻找并验证业务需求来源（不能基于代码反推需求）
-- **需求实现完整性**：验证代码是否100%满足业务需求
-- **业务流程逻辑正确性**：检查状态转换、数据流、条件判断的逻辑
-- **数据结构正确性**：验证模型定义、字段约束、业务规则映射
-- **Edge Case处理**：评估边界条件和异常场景的处理合理性
+### 1. Business-Level Review (BLOCKING Level)
+- **Requirement Source Verification**: Find and verify business requirement sources (cannot infer requirements from code)
+- **Requirement Implementation Completeness**: Verify that code 100% satisfies business requirements
+- **Business Process Logic Correctness**: Check logic of state transitions, data flow, and conditional judgments
+- **Data Structure Correctness**: Verify model definitions, field constraints, and business rule mappings
+- **Edge Case Handling**: Evaluate the reasonableness of handling boundary conditions and exception scenarios
 
-### 2. 技术层面审查  
-- **架构合理性**：模块化、职责分离、依赖关系
-- **KISS原则遵循**：避免过度工程化
-- **扩展性评估**：未来功能添加的容易程度
-- **非Adhoc修改验证**：是否遵循现有代码模式
-- **性能问题检测**：查找明显的性能问题（如N+1查询等）
-- **单元测试完备性**：核心逻辑90%覆盖率要求
+### 2. Technical-Level Review
+- **Architecture Rationality**: Modularity, separation of concerns, dependency relationships
+- **KISS Principle Adherence**: Avoid over-engineering
+- **Extensibility Assessment**: Ease of adding future features
+- **Non-Adhoc Modification Verification**: Whether existing code patterns are followed
+- **Performance Issue Detection**: Find obvious performance issues (such as N+1 queries, etc.)
+- **Unit Test Completeness**: 90% coverage requirement for core logic
 
-### 3. 契约与连通性专项检查（BLOCKING）
-- 端点一致性：前端端点集中配置；路径/动态段/大小写/末尾分隔符与后端路由完全一致；HTTP 方法语义匹配（幂等/副作用）。
-- 认证与跨域：统一的认证机制（会话/令牌）；前端传递方式与后端期望一致（Cookie/Authorization 等）；跨域与 CSRF 策略匹配。
-- 请求/响应 Schema：字段名、类型、必选/可选一致；时间/数值/布尔的编码一致；分页/排序参数与响应元信息对齐。
-- 错误与状态码：4xx/5xx 使用合理；错误负载结构稳定且可解析；前端根据错误类型提供可恢复提示。
-- 异步/事件（如有）：事件类型与载荷字段与文档一致；开始/结束/错误/心跳等语义完整；增量合并无丢失/重复；存在降级路径。
-- 端到端透传：API→Service→下游（存储/第三方）参数（上下文/会话/区域/幂等键）无遗漏；写操作具备幂等/去重策略。
-- 日志与隐私：日志含必要上下文（追踪/用户/会话），敏感信息脱敏；UI 默认不展示内部实现细节。
+### 3. Contract and Connectivity Special Check (BLOCKING)
+- Endpoint Consistency: Frontend endpoints centrally configured; paths/dynamic segments/case/trailing separators completely match backend routes; HTTP method semantics match (idempotent/side effects).
+- Authentication and CORS: Unified authentication mechanism (session/token); frontend passing method matches backend expectations (Cookie/Authorization, etc.); CORS and CSRF policies match.
+- Request/Response Schema: Field names, types, required/optional consistent; time/numeric/boolean encoding consistent; pagination/sorting parameters align with response metadata.
+- Errors and Status Codes: 4xx/5xx usage reasonable; error payload structure stable and parseable; frontend provides recoverable prompts based on error types.
+- Async/Events (if applicable): Event types and payload fields match documentation; semantics complete (start/end/error/heartbeat); incremental merge without loss/duplication; fallback path exists.
+- End-to-End Propagation: API→Service→Downstream (storage/third-party) parameters (context/session/region/idempotency key) not missing; write operations have idempotency/deduplication strategy.
+- Logging and Privacy: Logs contain necessary context (trace/user/session), sensitive information masked; UI does not display internal implementation details by default.
 
-#### 全链路 Contract Crosswalk（必做）
-- 选取关键用户流，建立“参数对齐矩阵”：
-  - 前端请求 → 后端路由/处理 → 服务层 → 下游（存储/第三方）→ 持久化字段。
-  - 列出每个参数：`name | type | required | default | source-of-truth(文件:行)`。
-  - 如存在事件/流式契约，补充事件类型与载荷字段，以及必要的状态回写。
-- 输出差异点与最小修复建议（谁改、改哪、如何不破坏现有行为）。
+#### Full-Chain Contract Crosswalk (MANDATORY)
+- Select key user flows, establish "parameter alignment matrix":
+  - Frontend request → Backend route/handler → Service layer → Downstream (storage/third-party) → Persisted fields.
+  - List each parameter: `name | type | required | default | source-of-truth(file:line)`.
+  - If event/streaming contracts exist, supplement event types and payload fields, as well as necessary state writebacks.
+- Output discrepancies and minimal fix suggestions (who changes, where, how to not break existing behavior).
 
-### 4. 高发问题清单（优先排查）
-- 命名错位：不同层对同一概念使用了不同命名风格或名称（例如 `camelCase` ↔ `snake_case`、标识符命名不一致）。
-- 路径错位：端点路径或动态段命名不一致；末尾分隔符导致重定向或方法失败。
-- 类型漂移：数字/字符串/布尔/时间类型在层间编码不一致或未正确转换。
-- 认证混用：请求在不同处使用了不同认证方式；跨域请求未按需携带凭证；CSRF 保护缺失。
-- 事件缺口：后端新增事件类型或字段未在前端解析；增量合并逻辑导致重复/丢失。
-- 可见性/状态：后端状态位或可见性字段被忽略，导致 UI 展示与真实状态不一致。
+### 4. High-Frequency Issue Checklist (Priority Investigation)
+- Naming Mismatch: Different layers use different naming styles or names for the same concept (e.g., `camelCase` ↔ `snake_case`, identifier naming inconsistent).
+- Path Mismatch: Endpoint paths or dynamic segment naming inconsistent; trailing separators cause redirects or method failures.
+- Type Drift: Number/string/boolean/time types inconsistently encoded or incorrectly converted across layers.
+- Authentication Mixing: Requests use different authentication methods in different places; cross-origin requests don't carry credentials as needed; CSRF protection missing.
+- Event Gaps: Backend adds new event types or fields not parsed by frontend; incremental merge logic causes duplicates/loss.
+- Visibility/State: Backend state bits or visibility fields ignored, causing UI display inconsistent with actual state.
 
-### 5. 零假设验证（VERIFY-FIRST Gate，BLOCKING）
-- 禁止基于“猜测的字段/API/事件”写逻辑。每个关键元素必须给出证据：
-  - 模型/字段定义位置（文件:行）
-  - 路由/处理方法签名（文件:行）
-  - 前端类型/解析/调用代码（文件:行）
-- 无证据的假设一律不通过。
+### 5. Zero-Assumption Verification (VERIFY-FIRST Gate, BLOCKING)
+- Prohibit writing logic based on "guessed fields/APIs/events". Each critical element must provide evidence:
+  - Model/field definition location (file:line)
+  - Route/handler method signature (file:line)
+  - Frontend type/parsing/call code (file:line)
+- Assumptions without evidence are not allowed.
 
-### 6. 用户视角 E2E 可见性审计（BLOCKING）
-⚠️ **这是最关键的检查** - "代码完美但功能不工作"的主要原因就是跳过了这一步！
+### 6. User Perspective E2E Visibility Audit (BLOCKING)
+⚠️ **This is the most critical check** - The main reason "code is perfect but feature doesn't work" is skipping this step!
 
-**MANDATORY USER FLOW VERIFICATION (必须执行):**
-- **完整点击路径追踪**：从用户点击开始，逐步追踪到最终状态
-  - 用户点击X → 调用函数Y → 导航到页面Z → 显示内容W
-  - **必须验证每个步骤都正确执行**
-- **URL路由验证**：所有导航路径在路由配置中存在且正确处理参数
-- **状态传递验证**：点击后的状态变化是否正确反映在UI中
-- **错误场景测试**：参数缺失、网络错误、权限不足等场景的处理
+**MANDATORY USER FLOW VERIFICATION (Must Execute):**
+- **Complete Click Path Tracking**: From user click, step-by-step track to final state
+  - User clicks X → Calls function Y → Navigates to page Z → Displays content W
+  - **Must verify each step executes correctly**
+- **URL Route Verification**: All navigation paths exist in route configuration and correctly handle parameters
+- **State Transfer Verification**: Whether state changes after click are correctly reflected in UI
+- **Error Scenario Testing**: Handling of missing parameters, network errors, insufficient permissions, etc.
 
-**具体检查项目:**
-- 入口可见：对应功能的入口（按钮/导航/控件）在默认场景与目标设备上可达；不被误判条件隐藏。
-- **链接落地（核心）**：页面路由/回跳/深链接一致；从入口到完成形成闭环。
-  - 点击通知 → 是否真的跳转到预期页面？
-  - 分享链接 → 是否真的加载预期内容？
-  - 所有导航路径都必须实际追踪验证！
-- 状态完整：加载/空数据/错误/权限不足 均有清晰呈现与可恢复路径。
-- 角色/开关：与权限/Feature Flag 的可见性符合预期；默认值不阻断主流程。
+**Specific Check Items:**
+- Entry Visibility: Entry points (buttons/navigation/controls) for corresponding features are reachable in default scenarios and target devices; not hidden by misjudged conditions.
+- **Link Landing (Core)**: Page routes/back navigation/deep links consistent; forms closed loop from entry to completion.
+  - Click notification → Does it actually jump to expected page?
+  - Share link → Does it actually load expected content?
+  - All navigation paths must be actually tracked and verified!
+- State Completeness: Loading/empty data/error/insufficient permissions all have clear presentation and recoverable paths.
+- Role/Switch: Visibility matches permissions/Feature Flag expectations; default values don't block main flow.
 
-**⛔ 禁止行为:**
-- ❌ 只看代码结构，不追踪实际执行流程
-- ❌ 假设navigate()调用就等于用户到达了目标页面
-- ❌ 不验证URL参数处理逻辑
-- ❌ 说"看起来正确"而不验证"实际正确"
+**⛔ Prohibited Behaviors:**
+- ❌ Only look at code structure, don't track actual execution flow
+- ❌ Assume navigate() call equals user reaching target page
+- ❌ Don't verify URL parameter handling logic
+- ❌ Say "looks correct" without verifying "actually correct"
 
-### 7. Web3 AI 交易系统安全审查（BLOCKING 级别）
-🔐 **资金安全是生死线** - 一个安全漏洞可能导致所有资金损失！
+### 7. Web3 AI Trading System Security Review (BLOCKING Level)
+🔐 **Fund Security is the Bottom Line** - One security vulnerability can lead to total fund loss!
 
-#### 7.1 私钥与密钥管理（CRITICAL）
-- **零泄露原则**：
-  - ❌ 禁止：私钥/助记词出现在日志、错误消息、前端代码、Git 历史中
-  - ❌ 禁止：明文存储私钥（环境变量、配置文件、数据库）
-  - ✅ 必需：使用硬件钱包、HSM、或加密密钥管理服务（AWS KMS/Vault）
-  - ✅ 必需：API Key、密钥材料必须加密存储，运行时解密
-- **最小权限原则**：
-  - 交易签名密钥与只读查询密钥分离
-  - 每个功能使用独立的子账户/权限
-  - 定期轮换 API Key 和访问令牌
-- **验证检查**：
-  - [ ] grep 搜索 `private_key`、`mnemonic`、`seed` 等关键词，确保无硬编码
-  - [ ] 检查所有密钥存储位置的加密状态
-  - [ ] 验证密钥访问日志和审计追踪
+#### 7.1 Private Key and Key Management (CRITICAL)
+- **Zero Leakage Principle**:
+  - ❌ Prohibited: Private keys/mnemonics appear in logs, error messages, frontend code, Git history
+  - ❌ Prohibited: Plaintext storage of private keys (environment variables, config files, database)
+  - ✅ Required: Use hardware wallets, HSM, or encrypted key management services (AWS KMS/Vault)
+  - ✅ Required: API Keys, key material must be encrypted at rest, decrypted at runtime
+- **Principle of Least Privilege**:
+  - Separate trading signature keys from read-only query keys
+  - Each feature uses independent sub-accounts/permissions
+  - Regularly rotate API Keys and access tokens
+- **Verification Checks**:
+  - [ ] grep search for `private_key`, `mnemonic`, `seed` and other keywords, ensure no hardcoding
+  - [ ] Check encryption status of all key storage locations
+  - [ ] Verify key access logs and audit trails
 
-#### 7.2 交易安全（CRITICAL）
-- **签名验证**：
-  - ✅ 必需：所有交易必须经过签名验证
-  - ✅ 必需：验证交易发起者身份（防止伪造）
-  - ✅ 必需：使用 nonce/序列号防止重放攻击
-- **交易参数验证**：
-  - ✅ 必需：验证接收地址合法性（checksum、白名单）
-  - ✅ 必需：金额/价格/滑点限制（防止异常大额交易）
-  - ✅ 必需：Gas Price/Gas Limit 上限保护（防止 Gas 耗尽攻击）
-  - ✅ 必需：Deadline/超时保护（防止过期交易执行）
-- **滑点与价格保护**：
-  - ✅ 必需：设置合理的滑点容忍度（如 0.5%-2%）
-  - ✅ 必需：价格预言机验证（多源对比、时间戳检查）
-  - ✅ 必需：异常价格波动拒绝交易
-- **验证检查**：
-  - [ ] 所有交易调用都有 nonce 或幂等键
-  - [ ] 金额/价格参数都有上下限验证
-  - [ ] Gas 费用有最大限制
-  - [ ] 滑点保护代码存在且正确
+#### 7.2 Trading Security (CRITICAL)
+- **Signature Verification**:
+  - ✅ Required: All transactions must pass signature verification
+  - ✅ Required: Verify transaction initiator identity (prevent forgery)
+  - ✅ Required: Use nonce/sequence numbers to prevent replay attacks
+- **Transaction Parameter Validation**:
+  - ✅ Required: Verify recipient address legitimacy (checksum, whitelist)
+  - ✅ Required: Amount/price/slippage limits (prevent abnormal large transactions)
+  - ✅ Required: Gas Price/Gas Limit upper bound protection (prevent gas exhaustion attacks)
+  - ✅ Required: Deadline/timeout protection (prevent expired transaction execution)
+- **Slippage and Price Protection**:
+  - ✅ Required: Set reasonable slippage tolerance (e.g., 0.5%-2%)
+  - ✅ Required: Price oracle verification (multi-source comparison, timestamp check)
+  - ✅ Required: Reject transactions on abnormal price volatility
+- **Verification Checks**:
+  - [ ] All transaction calls have nonce or idempotency key
+  - [ ] Amount/price parameters have upper and lower bound validation
+  - [ ] Gas fees have maximum limit
+  - [ ] Slippage protection code exists and is correct
 
-#### 7.3 AI 决策安全（CRITICAL）
-- **提示注入防护**：
-  - ❌ 禁止：直接将用户输入拼接到 AI prompt 中
-  - ✅ 必需：用户输入消毒/转义（防止 prompt injection）
-  - ✅ 必需：系统提示与用户输入明确分离（使用角色隔离）
-  - ✅ 必需：敏感操作需要用户明确确认，AI 不能自主决定大额交易
-- **决策审计**：
-  - ✅ 必需：记录所有 AI 决策的完整上下文（输入、输出、时间戳、模型版本）
-  - ✅ 必需：决策可追溯、可回放、可审计
-  - ✅ 必需：异常决策告警（如突然的大额交易建议）
-- **模型安全**：
-  - ✅ 必需：使用官方 API，避免第三方代理（防止中间人攻击）
-  - ✅ 必需：API 响应验证（检测异常输出、格式错误）
-  - ✅ 必需：模型输出不直接执行，必须经过参数验证
-- **验证检查**：
-  - [ ] 搜索用户输入拼接点，确保有消毒处理
-  - [ ] 检查决策日志是否完整（包含所有关键参数）
-  - [ ] 验证大额交易需要额外确认机制
+#### 7.3 AI Decision Security (CRITICAL)
+- **Prompt Injection Protection**:
+  - ❌ Prohibited: Directly concatenate user input into AI prompt
+  - ✅ Required: Sanitize/escape user input (prevent prompt injection)
+  - ✅ Required: Clearly separate system prompts from user input (use role isolation)
+  - ✅ Required: Sensitive operations require explicit user confirmation, AI cannot autonomously decide large transactions
+- **Decision Auditing**:
+  - ✅ Required: Record complete context of all AI decisions (input, output, timestamp, model version)
+  - ✅ Required: Decisions are traceable, replayable, auditable
+  - ✅ Required: Alert on abnormal decisions (e.g., sudden large transaction suggestions)
+- **Model Security**:
+  - ✅ Required: Use official APIs, avoid third-party proxies (prevent man-in-the-middle attacks)
+  - ✅ Required: API response validation (detect abnormal output, format errors)
+  - ✅ Required: Model output not directly executed, must pass parameter validation
+- **Verification Checks**:
+  - [ ] Search user input concatenation points, ensure sanitization
+  - [ ] Check decision logs are complete (include all critical parameters)
+  - [ ] Verify large transactions require additional confirmation mechanism
 
-#### 7.4 智能合约交互安全（CRITICAL）
-- **授权范围控制**：
-  - ❌ 禁止：无限授权（`approve(spender, type(uint256).max)`）
-  - ✅ 必需：按需授权，每次交易前计算精确授权额度
-  - ✅ 必需：定期清理过期授权
-  - ✅ 必需：监控授权事件，异常授权告警
-- **合约调用验证**：
-  - ✅ 必需：合约地址白名单（只与已审计合约交互）
-  - ✅ 必需：函数选择器验证（防止调用错误函数）
-  - ✅ 必需：调用参数类型/范围验证
-  - ✅ 必需：模拟执行（dry-run）后再真实执行
-- **重入与异常处理**：
-  - ✅ 必需：处理合约调用失败情况（revert、out of gas）
-  - ✅ 必需：检查返回值，不假设调用成功
-  - ✅ 必需：避免在外部调用后修改关键状态（防重入）
-- **验证检查**：
-  - [ ] grep `approve` 确保无无限授权
-  - [ ] 所有合约地址来自配置/白名单，无硬编码
-  - [ ] 调用失败有完整的错误处理和回退逻辑
+#### 7.4 Smart Contract Interaction Security (CRITICAL)
+- **Authorization Scope Control**:
+  - ❌ Prohibited: Unlimited authorization (`approve(spender, type(uint256).max)`)
+  - ✅ Required: Authorize on demand, calculate precise authorization amount before each transaction
+  - ✅ Required: Regularly clean up expired authorizations
+  - ✅ Required: Monitor authorization events, alert on abnormal authorizations
+- **Contract Call Verification**:
+  - ✅ Required: Contract address whitelist (only interact with audited contracts)
+  - ✅ Required: Function selector verification (prevent calling wrong function)
+  - ✅ Required: Call parameter type/range validation
+  - ✅ Required: Simulate execution (dry-run) before real execution
+- **Reentrancy and Exception Handling**:
+  - ✅ Required: Handle contract call failures (revert, out of gas)
+  - ✅ Required: Check return values, don't assume call succeeded
+  - ✅ Required: Avoid modifying critical state after external calls (prevent reentrancy)
+- **Verification Checks**:
+  - [ ] grep `approve` to ensure no unlimited authorization
+  - [ ] All contract addresses from config/whitelist, no hardcoding
+  - [ ] Call failures have complete error handling and fallback logic
 
-#### 7.5 资金保护机制（BLOCKING）
-- **限额控制**：
-  - ✅ 必需：单笔交易金额上限（如 $1000）
-  - ✅ 必需：日/周/月累计限额
-  - ✅ 必需：异常交易频率限制（防止快速耗尽资金）
-  - ✅ 必需：大额交易需要多重签名或延迟执行
-- **紧急暂停**：
-  - ✅ 必需：全局紧急停止按钮（kill switch）
-  - ✅ 必需：异常检测自动暂停（如价格异常、Gas 费暴涨）
-  - ✅ 必需：暂停后资金安全提取机制
-- **余额监控**：
-  - ✅ 必需：实时余额监控，低于阈值告警
-  - ✅ 必需：异常资金流出告警（大额转出、未知接收方）
-  - ✅ 必需：定期对账（链上余额 vs 系统记录）
-- **验证检查**：
-  - [ ] 限额配置存在且合理
-  - [ ] 紧急暂停功能可测试且有权限控制
-  - [ ] 余额监控代码存在且接入告警系统
+#### 7.5 Fund Protection Mechanisms (BLOCKING)
+- **Limit Controls**:
+  - ✅ Required: Single transaction amount upper limit (e.g., $1000)
+  - ✅ Required: Daily/weekly/monthly cumulative limits
+  - ✅ Required: Abnormal transaction frequency limits (prevent rapid fund depletion)
+  - ✅ Required: Large transactions require multi-signature or delayed execution
+- **Emergency Pause**:
+  - ✅ Required: Global emergency stop button (kill switch)
+  - ✅ Required: Automatic pause on anomaly detection (e.g., price anomaly, gas fee surge)
+  - ✅ Required: Safe fund withdrawal mechanism after pause
+- **Balance Monitoring**:
+  - ✅ Required: Real-time balance monitoring, alert below threshold
+  - ✅ Required: Alert on abnormal fund outflows (large transfers, unknown recipients)
+  - ✅ Required: Regular reconciliation (on-chain balance vs system records)
+- **Verification Checks**:
+  - [ ] Limit configuration exists and is reasonable
+  - [ ] Emergency pause function is testable and has permission control
+  - [ ] Balance monitoring code exists and is connected to alert system
 
-#### 7.6 链上数据验证（CRITICAL）
-- **预言机安全**：
-  - ❌ 禁止：单一数据源（可被操纵）
-  - ✅ 必需：多预言机对比（Chainlink、Band、UMA 等）
-  - ✅ 必需：价格偏差检测（多源价格差异超阈值拒绝）
-  - ✅ 必需：时间戳验证（数据新鲜度检查，拒绝过期数据）
-- **区块确认**：
-  - ✅ 必需：等待足够的区块确认（主网建议 ≥12 块，L2 根据实际情况）
-  - ✅ 必需：处理链重组可能（pending → confirmed → finalized）
-  - ✅ 必需：交易回执验证（status=1 成功）
-- **数据完整性**：
-  - ✅ 必需：事件日志完整性检查（topic、参数匹配）
-  - ✅ 必需：合约状态一致性验证（链上 vs 本地缓存）
-  - ✅ 必需：MEV 保护（使用私有内存池或 Flashbots）
-- **验证检查**：
-  - [ ] 价格数据来自多个预言机
-  - [ ] 区块确认数配置合理
-  - [ ] 交易状态检查包含 finalized 状态
+#### 7.6 On-Chain Data Validation (CRITICAL)
+- **Oracle Security**:
+  - ❌ Prohibited: Single data source (can be manipulated)
+  - ✅ Required: Multi-oracle comparison (Chainlink, Band, UMA, etc.)
+  - ✅ Required: Price deviation detection (reject if multi-source price difference exceeds threshold)
+  - ✅ Required: Timestamp verification (data freshness check, reject stale data)
+- **Block Confirmation**:
+  - ✅ Required: Wait for sufficient block confirmations (mainnet recommends ≥12 blocks, L2 according to actual situation)
+  - ✅ Required: Handle chain reorganization possibility (pending → confirmed → finalized)
+  - ✅ Required: Transaction receipt verification (status=1 success)
+- **Data Integrity**:
+  - ✅ Required: Event log integrity check (topic, parameter matching)
+  - ✅ Required: Contract state consistency verification (on-chain vs local cache)
+  - ✅ Required: MEV protection (use private mempool or Flashbots)
+- **Verification Checks**:
+  - [ ] Price data from multiple oracles
+  - [ ] Block confirmation count configured reasonably
+  - [ ] Transaction status check includes finalized state
 
-## 审查结果
+## Review Results
 
-请给出以下三种结果之一：
-- ✅ **通过**：可以直接提交
-- ❌ **不通过**：存在BLOCKING问题，必须修复
-- ⚠️ **需要修复**：有改进空间，建议修复
+Please provide one of the following three results:
+- ✅ **Pass**: Can be submitted directly
+- ❌ **Fail**: BLOCKING issues exist, must be fixed
+- ⚠️ **Needs Fix**: Room for improvement, recommended to fix
 
-## 核心原则
+## Core Principles
 
-1. **白盒逻辑正确性是根本**：业务逻辑错误是生死线
-2. **需求驱动**：必须找到真实需求来源
-3. **客观分析**：基于实际代码和需求，不自我欺骗
-4. **actionable建议**：提供具体的修复指导
+1. **White-Box Logic Correctness is Fundamental**: Business logic errors are the bottom line
+2. **Requirement-Driven**: Must find real requirement sources
+3. **Objective Analysis**: Based on actual code and requirements, no self-deception
+4. **Actionable Suggestions**: Provide specific fix guidance
 
-## 评审交付物（必须包含）
-- **问题清单**：逐条指出"谁与谁不一致"（路径/参数/字段/事件/状态码），附最小复现样本。
-- **最小修复建议**：明确"谁改、改哪里、如何不破坏现有调用"（可附 1-3 行级 diff 建议）。
-- **兼容/过渡策略**：必要时说明双解析/版本前缀/灰度开关/降级方案。
-- **🚨 E2E验证报告**：对每个用户交互流程的完整追踪验证（MANDATORY）
+## Review Deliverables (Must Include)
+- **Issue List**: Point out "who and who are inconsistent" (paths/parameters/fields/events/status codes) item by item, with minimal reproduction samples.
+- **Minimal Fix Suggestions**: Clearly state "who changes, where, how to not break existing calls" (can include 1-3 line-level diff suggestions).
+- **Compatibility/Transition Strategy**: When necessary, explain dual parsing/version prefix/feature flag/fallback solutions.
+- **🚨 E2E Verification Report**: Complete tracking verification for each user interaction flow (MANDATORY)
 
-## 强制性E2E验证清单（必须逐项检查）
-在给出审查结果前，必须完成以下验证：
+## Mandatory E2E Verification Checklist (Must Check Item by Item)
+Before providing review results, the following verifications must be completed:
 
-### ✅ 用户点击验证
-- [ ] 所有onClick处理器都能正确执行
-- [ ] 处理器中的navigate()调用指向正确的路径
-- [ ] 目标路径在路由配置中存在
-- [ ] 目标页面能正确处理URL参数
+### ✅ User Click Verification
+- [ ] All onClick handlers can execute correctly
+- [ ] navigate() calls in handlers point to correct paths
+- [ ] Target paths exist in route configuration
+- [ ] Target pages can correctly handle URL parameters
 
-### ✅ 导航流程验证
-- [ ] 从点击到页面加载的完整路径畅通
-- [ ] URL参数正确传递和解析
-- [ ] 页面状态正确初始化
-- [ ] 用户看到预期的内容和界面
+### ✅ Navigation Flow Verification
+- [ ] Complete path from click to page load is unobstructed
+- [ ] URL parameters correctly passed and parsed
+- [ ] Page state correctly initialized
+- [ ] User sees expected content and interface
 
-### ✅ 状态一致性验证
-- [ ] 点击后应用状态正确更新
-- [ ] UI界面反映状态变化
-- [ ] 没有状态不同步的问题
+### ✅ State Consistency Verification
+- [ ] Application state correctly updated after click
+- [ ] UI interface reflects state changes
+- [ ] No state synchronization issues
 
-### ✅ 安全验证（Web3 AI 交易系统 - MANDATORY）
-- [ ] **密钥安全**：无私钥泄露（日志/错误/前端/Git）
-- [ ] **密钥管理**：私钥加密存储，无明文环境变量
-- [ ] **交易验证**：所有交易有签名验证、nonce、金额限制
-- [ ] **滑点保护**：价格/滑点验证存在且合理
-- [ ] **AI 安全**：用户输入有消毒处理，无直接拼接到 prompt
-- [ ] **决策审计**：AI 决策有完整日志（输入/输出/时间戳）
-- [ ] **合约安全**：无无限授权，合约地址来自白名单
-- [ ] **限额保护**：存在单笔/累计交易限额
-- [ ] **紧急机制**：有 kill switch 或暂停功能
-- [ ] **预言机安全**：价格数据来自多源，有偏差检测
-- [ ] **确认机制**：大额交易需要用户明确确认
+### ✅ Security Verification (Web3 AI Trading System - MANDATORY)
+- [ ] **Key Security**: No private key leakage (logs/errors/frontend/Git)
+- [ ] **Key Management**: Private keys encrypted at rest, no plaintext environment variables
+- [ ] **Transaction Verification**: All transactions have signature verification, nonce, amount limits
+- [ ] **Slippage Protection**: Price/slippage validation exists and is reasonable
+- [ ] **AI Security**: User input has sanitization, not directly concatenated to prompt
+- [ ] **Decision Auditing**: AI decisions have complete logs (input/output/timestamp)
+- [ ] **Contract Security**: No unlimited authorization, contract addresses from whitelist
+- [ ] **Limit Protection**: Single/cumulative transaction limits exist
+- [ ] **Emergency Mechanism**: Has kill switch or pause function
+- [ ] **Oracle Security**: Price data from multiple sources, has deviation detection
+- [ ] **Confirmation Mechanism**: Large transactions require explicit user confirmation
 
-### ⛔ 审查失败条件
-如果以下任一项为真，审查必须标记为❌不通过：
+### ⛔ Review Failure Conditions
+If any of the following is true, the review must be marked as ❌ Fail:
 
-**功能性问题：**
-- 存在navigate()指向不存在或错误的路径
-- 用户点击后无法到达预期页面
-- 状态更新不完整导致UI不一致
-- 关键用户流程无法完成
+**Functional Issues:**
+- navigate() points to non-existent or incorrect paths
+- User cannot reach expected page after click
+- Incomplete state updates cause UI inconsistency
+- Critical user flows cannot be completed
 
-**安全性问题（Web3 AI 系统）：**
-- 私钥/助记词出现在日志、错误消息、前端代码、Git 历史中
-- 私钥明文存储（环境变量/配置文件/数据库）
-- 交易缺少签名验证、nonce、或金额限制
-- 存在无限授权（`approve(spender, type(uint256).max)`）
-- 用户输入直接拼接到 AI prompt（prompt injection 风险）
-- AI 可以自主决定大额交易（无用户确认）
-- 缺少紧急暂停机制
-- 单一预言机数据源（可被操纵）
-- 大额交易无多重签名或延迟执行
+**Security Issues (Web3 AI System):**
+- Private keys/mnemonics appear in logs, error messages, frontend code, Git history
+- Private keys stored in plaintext (environment variables/config files/database)
+- Transactions missing signature verification, nonce, or amount limits
+- Unlimited authorization exists (`approve(spender, type(uint256).max)`)
+- User input directly concatenated to AI prompt (prompt injection risk)
+- AI can autonomously decide large transactions (no user confirmation)
+- Emergency pause mechanism missing
+- Single oracle data source (can be manipulated)
+- Large transactions without multi-signature or delayed execution
 
-**记住：代码编译通过 ≠ 功能正确工作 ≠ 资金安全**
+**Remember: Code Compiles ≠ Function Works Correctly ≠ Funds Are Secure**
 
-## 技术验证方法（MANDATORY）
+## Technical Verification Methods (MANDATORY)
 
-### 🔍 导航路径验证脚本
-执行以下检查来验证导航逻辑：
+### 🔍 Navigation Path Verification Script
+Execute the following checks to verify navigation logic:
 ```bash
-# 1. 找出所有navigate()调用
+# 1. Find all navigate() calls
 grep -r "navigate(" frontend/src --include="*.tsx" --include="*.ts" -n
 
-# 2. 找出所有路由定义
+# 2. Find all route definitions
 grep -r "path=" frontend/src --include="*.tsx" --include="*.ts" -n
 
-# 3. 检查URL参数处理
+# 3. Check URL parameter handling
 grep -r "useSearchParams\|URLSearchParams" frontend/src --include="*.tsx" --include="*.ts" -n
 ```
 
-### 🔍 状态管理验证
+### 🔍 State Management Verification
 ```bash
-# 检查状态更新逻辑
+# Check state update logic
 grep -r "useState\|useEffect.*navigate" frontend/src --include="*.tsx" --include="*.ts" -n
 
-# 检查onClick处理器
+# Check onClick handlers
 grep -r "onClick.*=>" frontend/src --include="*.tsx" --include="*.ts" -n
 ```
 
-### 🚨 必须回答的验证问题
-对于每个用户交互，审查者必须回答：
+### 🚨 Mandatory Verification Questions
+For each user interaction, the reviewer must answer:
 
-1. **点击发生什么？**
-   - onClick处理器具体做了什么操作？
-   - 调用了哪些函数？传递了什么参数？
+1. **What Happens on Click?**
+   - What specific operations does the onClick handler perform?
+   - Which functions are called? What parameters are passed?
 
-2. **导航去哪里？**
-   - navigate()的目标路径是什么？
-   - 这个路径在路由配置中存在吗？
-   - 路径参数格式正确吗？
+2. **Where Does Navigation Go?**
+   - What is the target path of navigate()?
+   - Does this path exist in route configuration?
+   - Is the path parameter format correct?
 
-3. **目标页面做什么？**
-   - 目标页面/组件如何处理URL参数？
-   - 是否正确提取和使用参数？
-   - 用户最终看到什么内容？
+3. **What Does the Target Page Do?**
+   - How does the target page/component handle URL parameters?
+   - Are parameters correctly extracted and used?
+   - What content does the user ultimately see?
 
-4. **状态是否一致？**
-   - 点击后应用状态如何变化？
-   - UI是否正确反映状态变化？
-   - 有没有状态不同步问题？
+4. **Is State Consistent?**
+   - How does application state change after click?
+   - Does UI correctly reflect state changes?
+   - Are there any state synchronization issues?
 
-**如果审查者无法回答这些问题，审查必须标记为❌不通过**
+**If the reviewer cannot answer these questions, the review must be marked as ❌ Fail**
 
-## 快速验证提示
-- 端点集中来源：前端禁止硬编码 URL；新增/变更端点已同步到常量/SDK。
-- 认证一致：跨域/跨端口请求按需携带凭证（Cookie/Token），不依赖未声明的自定义头。
-- 异步降级：在不支持事件/流式或网络异常时具备降级路径与用户提示。
-- 可见性扫描：关键入口在默认态与目标设备上可见；空/错误/加载可复现且可恢复。
-- 自动化检查：加入简单脚本/CI 规则检查硬编码端点、路径格式、必需认证头/凭证的使用一致性。
+## Quick Verification Tips
+- Centralized Endpoint Source: Frontend prohibits hardcoded URLs; new/changed endpoints synchronized to constants/SDK.
+- Authentication Consistency: Cross-origin/cross-port requests carry credentials (Cookie/Token) as needed, don't rely on undeclared custom headers.
+- Async Fallback: Has fallback path and user prompts when events/streaming not supported or network errors occur.
+- Visibility Scan: Critical entries visible in default state and target devices; empty/error/loading states reproducible and recoverable.
+- Automated Checks: Add simple scripts/CI rules to check hardcoded endpoints, path format, required auth headers/credentials usage consistency.

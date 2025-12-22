@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// Provider AI提供商类型
+// Provider AI provider type
 type Provider string
 
 const (
@@ -22,57 +22,57 @@ const (
 	ProviderCustom   Provider = "custom"
 )
 
-// Client AI API配置
+// Client AI API configuration
 type Client struct {
 	Provider   Provider
 	APIKey     string
 	BaseURL    string
 	Model      string
 	Timeout    time.Duration
-	UseFullURL bool // 是否使用完整URL（不添加/chat/completions）
-	MaxTokens  int  // AI响应的最大token数
+	UseFullURL bool // Whether to use full URL (without adding /chat/completions)
+	MaxTokens  int  // Maximum number of tokens for AI response
 }
 
 func New() *Client {
-	// 从环境变量读取 MaxTokens，默认 2000
+	// Read MaxTokens from environment variable, default 2000
 	maxTokens := 2000
 	if envMaxTokens := os.Getenv("AI_MAX_TOKENS"); envMaxTokens != "" {
 		if parsed, err := strconv.Atoi(envMaxTokens); err == nil && parsed > 0 {
 			maxTokens = parsed
-			log.Printf("🔧 [MCP] 使用环境变量 AI_MAX_TOKENS: %d", maxTokens)
+			log.Printf("🔧 [MCP] Using environment variable AI_MAX_TOKENS: %d", maxTokens)
 		} else {
-			log.Printf("⚠️  [MCP] 环境变量 AI_MAX_TOKENS 无效 (%s)，使用默认值: %d", envMaxTokens, maxTokens)
+			log.Printf("⚠️  [MCP] Environment variable AI_MAX_TOKENS is invalid (%s), using default value: %d", envMaxTokens, maxTokens)
 		}
 	}
 
-	// 默认配置
+	// Default configuration
 	return &Client{
 		Provider:  ProviderDeepSeek,
 		BaseURL:   "https://api.deepseek.com/v1",
 		Model:     "deepseek-chat",
-		Timeout:   120 * time.Second, // 增加到120秒，因为AI需要分析大量数据
+		Timeout:   120 * time.Second, // Increase to 120 seconds, because AI needs to analyze大量数据
 		MaxTokens: maxTokens,
 	}
 }
 
-// SetDeepSeekAPIKey 设置DeepSeek API密钥
-// customURL 为空时使用默认URL，customModel 为空时使用默认模型
+// SetDeepSeekAPIKey Set DeepSeek API key
+// Use default URL when customURL is empty, use default model when customModel is empty
 func (client *Client) SetDeepSeekAPIKey(apiKey string, customURL string, customModel string) {
 	client.Provider = ProviderDeepSeek
 	client.APIKey = apiKey
 	if customURL != "" {
 		client.BaseURL = customURL
-		log.Printf("🔧 [MCP] DeepSeek 使用自定义 BaseURL: %s", customURL)
+		log.Printf("🔧 [MCP] DeepSeek using custom BaseURL: %s", customURL)
 	} else {
 		client.BaseURL = "https://api.deepseek.com/v1"
-		log.Printf("🔧 [MCP] DeepSeek 使用默认 BaseURL: %s", client.BaseURL)
+		log.Printf("🔧 [MCP] DeepSeek using default BaseURL: %s", client.BaseURL)
 	}
 	if customModel != "" {
 		client.Model = customModel
-		log.Printf("🔧 [MCP] DeepSeek 使用自定义 Model: %s", customModel)
+		log.Printf("🔧 [MCP] DeepSeek using custom Model: %s", customModel)
 	} else {
 		client.Model = "deepseek-chat"
-		log.Printf("🔧 [MCP] DeepSeek 使用默认 Model: %s", client.Model)
+		log.Printf("🔧 [MCP] DeepSeek using default Model: %s", client.Model)
 	}
 	// 打印 API Key 的前后各4位用于验证
 	if len(apiKey) > 8 {
@@ -110,7 +110,7 @@ func (client *Client) SetCustomAPI(apiURL, apiKey, modelName string) {
 	client.Provider = ProviderCustom
 	client.APIKey = apiKey
 
-	// 检查URL是否以#结尾，如果是则使用完整URL（不添加/chat/completions）
+	// Check if the URL ends with #, if so use full URL (without adding /chat/completions)
 	if strings.HasSuffix(apiURL, "#") {
 		client.BaseURL = strings.TrimSuffix(apiURL, "#")
 		client.UseFullURL = true
@@ -143,13 +143,13 @@ func (client *Client) CallWithMessages(systemPrompt, userPrompt string) (string,
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		if attempt > 1 {
-			fmt.Printf("⚠️  AI API调用失败，正在重试 (%d/%d)...\n", attempt, maxRetries)
+			fmt.Printf("⚠️  AI API call failed, retrying (%d/%d)...\n", attempt, maxRetries)
 		}
 
 		result, err := client.callOnce(systemPrompt, userPrompt)
 		if err == nil {
 			if attempt > 1 {
-				fmt.Printf("✓ AI API重试成功\n")
+				fmt.Printf("✓ AI API retry successful\n")
 			}
 			return result, nil
 		}
@@ -163,18 +163,18 @@ func (client *Client) CallWithMessages(systemPrompt, userPrompt string) (string,
 		// 重试前等待
 		if attempt < maxRetries {
 			waitTime := time.Duration(attempt) * 2 * time.Second
-			fmt.Printf("⏳ 等待%v后重试...\n", waitTime)
+			fmt.Printf("⏳ Waiting %v seconds before retrying...\n", waitTime)
 			time.Sleep(waitTime)
 		}
 	}
 
-	return "", fmt.Errorf("重试%d次后仍然失败: %w", maxRetries, lastErr)
+	return "", fmt.Errorf("retry %d times failed: %w", maxRetries, lastErr)
 }
 
 // callOnce 单次调用AI API（内部使用）
 func (client *Client) callOnce(systemPrompt, userPrompt string) (string, error) {
 	// 打印当前 AI 配置
-	log.Printf("📡 [MCP] AI 请求配置:")
+	log.Printf("📡 [MCP] AI request configuration:")
 	log.Printf("   Provider: %s", client.Provider)
 	log.Printf("   BaseURL: %s", client.BaseURL)
 	log.Printf("   Model: %s", client.Model)
@@ -183,10 +183,10 @@ func (client *Client) callOnce(systemPrompt, userPrompt string) (string, error) 
 		log.Printf("   API Key: %s...%s", client.APIKey[:4], client.APIKey[len(client.APIKey)-4:])
 	}
 
-	// 构建 messages 数组
+	// Build messages array
 	messages := []map[string]string{}
 
-	// 如果有 system prompt，添加 system message
+	// If there is a system prompt, add system message
 	if systemPrompt != "" {
 		messages = append(messages, map[string]string{
 			"role":    "system",
@@ -194,17 +194,17 @@ func (client *Client) callOnce(systemPrompt, userPrompt string) (string, error) 
 		})
 	}
 
-	// 添加 user message
+	// Add user message
 	messages = append(messages, map[string]string{
 		"role":    "user",
 		"content": userPrompt,
 	})
 
-	// 构建请求体
+	// Build request body
 	requestBody := map[string]interface{}{
 		"model":       client.Model,
 		"messages":    messages,
-		"temperature": 0.5, // 降低temperature以提高JSON格式稳定性
+		"temperature": 0.5, // Decrease temperature to improve JSON format stability
 		"max_tokens":  client.MaxTokens,
 	}
 
@@ -234,37 +234,37 @@ func (client *Client) callOnce(systemPrompt, userPrompt string) (string, error) 
 
 	req.Header.Set("Content-Type", "application/json")
 
-	// 根据不同的Provider设置认证方式
+	// According to different Provider set authentication method
 	switch client.Provider {
 	case ProviderDeepSeek:
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", client.APIKey))
 	case ProviderQwen:
-		// 阿里云Qwen使用API-Key认证
+		// Alibaba Cloud Qwen uses API-Key authentication
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", client.APIKey))
-		// 注意：如果使用的不是兼容模式，可能需要不同的认证方式
+		// Note: If the non-compatible mode is used, a different authentication method may be required
 	default:
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", client.APIKey))
 	}
 
-	// 发送请求
+	// Send request
 	httpClient := &http.Client{Timeout: client.Timeout}
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("发送请求失败: %w", err)
+		return "", fmt.Errorf("send request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// 读取响应
+	// Read response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("读取响应失败: %w", err)
+		return "", fmt.Errorf("read response failed: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("API返回错误 (status %d): %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("API returned error (status %d): %s", resp.StatusCode, string(body))
 	}
 
-	// 解析响应
+	// Parse response
 	var result struct {
 		Choices []struct {
 			Message struct {
@@ -274,20 +274,20 @@ func (client *Client) callOnce(systemPrompt, userPrompt string) (string, error) 
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
-		return "", fmt.Errorf("解析响应失败: %w", err)
+		return "", fmt.Errorf("parse response failed: %w", err)
 	}
 
 	if len(result.Choices) == 0 {
-		return "", fmt.Errorf("API返回空响应")
+		return "", fmt.Errorf("API returned empty response")
 	}
 
 	return result.Choices[0].Message.Content, nil
 }
 
-// isRetryableError 判断错误是否可重试
+// isRetryableError Check if the error is retryable
 func isRetryableError(err error) bool {
 	errStr := err.Error()
-	// 网络错误、超时、EOF等可以重试
+	// Network errors, timeouts, EOF, etc. can be retried
 	retryableErrors := []string{
 		"EOF",
 		"timeout",
@@ -295,8 +295,8 @@ func isRetryableError(err error) bool {
 		"connection refused",
 		"temporary failure",
 		"no such host",
-		"stream error",   // HTTP/2 stream 错误
-		"INTERNAL_ERROR", // 服务端内部错误
+		"stream error",   // HTTP/2 stream error
+		"INTERNAL_ERROR", // Server internal error
 	}
 	for _, retryable := range retryableErrors {
 		if strings.Contains(errStr, retryable) {
