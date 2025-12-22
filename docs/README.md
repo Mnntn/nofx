@@ -86,6 +86,7 @@ Welcome to the NOFX documentation! This page helps you find the right documentat
 |----------|-------------|------|
 | [Architecture Overview (EN)](architecture/README.md) | System architecture, modules, and design | 系统架构、模块和设计 |
 | [Architecture Overview (中文)](architecture/README.zh-CN.md) | 系统架构、模块和设计 | System architecture overview |
+| [Technical Indicators Guide](#-technical-indicators--技术指标) | Comprehensive guide to all supported indicators | 所有支持的技术指标指南 |
 | API Reference *(coming soon)* | HTTP API documentation | HTTP API 文档 |
 | Database Schema *(coming soon)* | SQLite database structure | SQLite 数据库结构 |
 | Testing Guide *(coming soon)* | How to write tests | 如何编写测试 |
@@ -150,6 +151,7 @@ Welcome to the NOFX documentation! This page helps you find the right documentat
 | User Guides | ✅ Complete | 2025-11-01 |
 | Community | ✅ Complete | 2025-11-01 |
 | Architecture | ✅ Complete | 2025-11-01 |
+| Technical Indicators | ✅ Complete | 2025-11-23 |
 | Roadmap | ✅ Complete | 2025-11-01 |
 | API Reference | 📋 Planned | - |
 
@@ -158,6 +160,85 @@ Welcome to the NOFX documentation! This page helps you find the right documentat
 - 🚧 In Progress - Being written
 - 📋 Planned - On the roadmap
 - ⚠️ Outdated - Needs update
+
+---
+
+## 📊 Technical Indicators / 技术指标
+
+**NOFX supports a comprehensive set of technical indicators for advanced market analysis**
+
+### 🔧 Supported Indicators
+
+| Indicator | Type | Description | 描述 |
+|-----------|------|-------------|------|
+| **EMA** | Trend | Exponential Moving Average (20, 50 periods) | 指数移动平均线 |
+| **MACD** | Momentum | Moving Average Convergence Divergence | 移动平均收敛发散 |
+| **RSI** | Oscillator | Relative Strength Index (7, 14 periods) | 相对强弱指数 |
+| **ATR** | Volatility | Average True Range (3, 14 periods) | 平均真实波幅 |
+| **Ichimoku Cloud** ⭐ | Multi-purpose | Complete Ichimoku Kinko Hyo system | 一目均衡表系统 |
+
+### 🌟 Ichimoku Cloud Integration
+
+**New in NOFX v2.1+**: Full Ichimoku Cloud support with advanced signal detection
+
+#### Components / 组件:
+- **Tenkan-Sen (转换线)**: Fast line (9 periods) - `(High + Low) / 2`
+- **Kijun-Sen (基准线)**: Slow line (26 periods) - `(High + Low) / 2`
+- **Senkou Span A (先行带A)**: Leading span A - `(Tenkan + Kijun) / 2`
+- **Senkou Span B (先行带B)**: Leading span B (52 periods) - `(High + Low) / 2`
+- **Chikou Span (迟行线)**: Lagging span - Current price shifted back 26 periods
+
+#### Trading Signals / 交易信号:
+1. **Golden Cross (金叉)**: Tenkan crosses above Kijun → Buy signal
+2. **Dead Cross (死叉)**: Tenkan crosses below Kijun → Sell signal
+3. **Cloud Breakout (云突破)**: Price breaks above/below cloud → Strong trend signal
+4. **Cloud Twist (云扭转)**: Cloud color change → Trend reversal
+5. **Thin Cloud (薄云)**: Weak support/resistance → Potential breakout
+
+#### Alert Thresholds / 警报阈值:
+```go
+IchimokuGoldenCross:  true,  // Enable golden cross alerts
+IchimokuDeadCross:    true,  // Enable dead cross alerts
+IchimokuCloudBreak:   true,  // Enable cloud breakout alerts
+IchimokuChikouBreak:  true,  // Enable Chikou break alerts
+CloudThicknessMin:    0.001, // Minimum cloud thickness (0.1%)
+```
+
+#### Data Structure / 数据结构:
+```go
+type IchimokuData struct {
+    TenkanSen      float64 // Conversion line
+    KijunSen       float64 // Base line
+    SenkouSpanA    float64 // Leading span A
+    SenkouSpanB    float64 // Leading span B
+    ChikouSpan     float64 // Lagging span
+    CloudColor     string  // "bullish", "bearish", "neutral"
+    CloudThickness float64 // Absolute difference between spans
+    PricePosition  string  // "above", "below", "inside"
+    TrendDirection string  // "bullish", "bearish", "sideways"
+}
+```
+
+### 📈 Usage in AI Decision Making
+
+All technical indicators are automatically:
+- **Calculated in real-time** from WebSocket market data
+- **Integrated into AI prompts** for decision making
+- **Used for alert generation** when thresholds are exceeded
+- **Formatted for human readability** in market analysis output
+
+### 🔄 Timeframes
+
+- **3-minute data**: Short-term analysis and quick signals
+- **4-hour data**: Medium-term trends and Ichimoku analysis
+- **Historical series**: Trend analysis and pattern recognition
+
+### ⚙️ Configuration
+
+Technical indicators can be configured via:
+- **Alert thresholds** in `market/types.go`
+- **Calculation periods** in indicator functions
+- **Enable/disable flags** for specific signals
 
 ---
 
@@ -188,5 +269,17 @@ Found an error or want to improve the docs?
 
 ---
 
-**Last Updated:** 2025-11-01
+**Last Updated:** 2025-11-23
 **Maintained by:** [Tinkle Community](https://github.com/tinkle-community)
+
+---
+
+## 🆕 Recent Updates
+
+### v2.1+ - Ichimoku Cloud Integration (2025-11-23)
+- ✅ **Full Ichimoku Cloud support** with all 5 components
+- ✅ **Advanced signal detection** (Golden/Dead Cross, Cloud Breakout, etc.)
+- ✅ **Real-time alert system** with configurable thresholds
+- ✅ **Multi-timeframe analysis** (3m and 4h data)
+- ✅ **AI integration** for enhanced decision making
+- ✅ **Comprehensive documentation** and usage examples
